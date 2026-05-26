@@ -24,3 +24,29 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Bot Memory Markdown Preview */
+.prose-bot h1, .prose-bot h2, .prose-bot h3 {
+  color: #e5e7eb;
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+.prose-bot h1 { font-size: 1.25rem; }
+.prose-bot h2 { font-size: 1.1rem; border-bottom: 1px solid #374151; padding-bottom: 0.25rem; }
+.prose-bot h3 { font-size: 0.95rem; }
+.prose-bot p { color: #d1d5db; font-size: 0.875rem; line-height: 1.6; margin-bottom: 0.75em; }
+.prose-bot ul, .prose-bot ol { color: #d1d5db; font-size: 0.875rem; padding-left: 1.5em; margin-bottom: 0.75em; }
+.prose-bot li { margin-bottom: 0.25em; }
+.prose-bot strong { color: #f3f4f6; font-weight: 600; }
+.prose-bot em { color: #c4b5fd; }
+.prose-bot code { background: #1f2937; color: #a5f3fc; padding: 0.1em 0.35em; border-radius: 0.25em; font-size: 0.8rem; font-family: monospace; }
+.prose-bot pre { background: #111827; border: 1px solid #374151; border-radius: 0.5rem; padding: 1rem; overflow-x: auto; margin-bottom: 0.75em; }
+.prose-bot pre code { background: none; color: #d1d5db; padding: 0; }
+.prose-bot blockquote { border-left: 3px solid #6d28d9; padding-left: 1em; color: #9ca3af; margin: 0.75em 0; font-style: italic; }
+.prose-bot hr { border-color: #374151; margin: 1em 0; }
+/* Tabellen (wichtig — yusef_brain.md hat viele) */
+.prose-bot table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 0.75em; }
+.prose-bot th { background: #1f2937; color: #e5e7eb; text-align: left; padding: 0.4em 0.75em; border: 1px solid #374151; font-weight: 600; }
+.prose-bot td { color: #d1d5db; padding: 0.35em 0.75em; border: 1px solid #374151; }
+.prose-bot tr:nth-child(even) td { background: #111827; }
