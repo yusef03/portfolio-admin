@@ -2,6 +2,25 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { useToast } from '@/components/Toast'
+
+// ─── Activity Log Helper ──────────────────────────────────────────────────────
+
+async function log(payload: {
+  action: string
+  status: 'success' | 'warning' | 'error' | 'info'
+  message?: string
+  details?: Record<string, unknown>
+  error?: string
+}) {
+  try {
+    await fetch('/api/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, category: 'translations' }),
+    })
+  } catch { /* silent */ }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,6 +66,7 @@ export default function TranslationsPage() {
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const toast = useToast()
 
   // ─── Daten laden ────────────────────────────────────────────────────────────
 
@@ -100,6 +120,7 @@ export default function TranslationsPage() {
   }
 
   const save = async (id: string, field: string, value: string) => {
+    const row = rows.find(r => r.id === id)
     const { error } = await supabase
       .from('translations')
       .update({ [field]: value, updated_at: new Date().toISOString() })
@@ -107,6 +128,13 @@ export default function TranslationsPage() {
 
     setSaveStatus(prev => ({ ...prev, [id]: error ? 'error' : 'saved' }))
     setTimeout(() => setSaveStatus(prev => ({ ...prev, [id]: 'idle' })), 2000)
+
+    if (error) {
+      toast.error('Speichern fehlgeschlagen', { detail: error.message })
+      log({ action: 'translation_update_failed', status: 'error', message: `Konnte ${field.toUpperCase()} für "${row?.key}" nicht speichern`, error: error.message, details: { key: row?.key, field } })
+    } else {
+      log({ action: 'translation_updated', status: 'success', message: `${field.toUpperCase()} aktualisiert: ${row?.key}`, details: { key: row?.key, field } })
+    }
   }
 
   // ─── Übersetzen (einzeln) ────────────────────────────────────────────────────
@@ -135,9 +163,12 @@ export default function TranslationsPage() {
       setRows(prev => prev.map(r => r.id === row.id ? { ...r, en: data.en, ar: data.ar } : r))
       setSaveStatus(prev => ({ ...prev, [row.id]: 'saved' }))
       setTimeout(() => setSaveStatus(prev => ({ ...prev, [row.id]: 'idle' })), 2000)
+      toast.success(`Übersetzt: ${row.key}`)
+      log({ action: 'translation_translated', status: 'success', message: `DE→EN+AR für "${row.key}"`, details: { key: row.key } })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Fehler'
-      alert(`Übersetzungsfehler: ${msg}`)
+      toast.error('Übersetzungsfehler', { detail: msg })
+      log({ action: 'translation_translate_failed', status: 'error', message: `Übersetzung für "${row.key}" fehlgeschlagen`, error: msg, details: { key: row.key } })
     } finally {
       setTranslating(prev => ({ ...prev, [row.id]: false }))
     }
@@ -147,10 +178,12 @@ export default function TranslationsPage() {
 
   const translateAllMissing = async () => {
     const missing = rows.filter(r => r.de.trim() && (isMissing(r.en) || isMissing(r.ar)))
-    if (missing.length === 0) { alert('Keine fehlenden Übersetzungen gefunden.'); return }
+    if (missing.length === 0) { toast.info('Keine fehlenden Übersetzungen gefunden.'); return }
 
     setBulkTranslating(true)
+    toast.info(`Starte Bulk-Übersetzung für ${missing.length} Keys…`)
     let done = 0
+    let failed = 0
 
     for (const row of missing) {
       try {
@@ -167,12 +200,24 @@ export default function TranslationsPage() {
             .eq('id', row.id)
           setRows(prev => prev.map(r => r.id === row.id ? { ...r, en: data.en, ar: data.ar } : r))
           done++
+        } else {
+          failed++
         }
-      } catch { /* weiter mit nächstem */ }
+      } catch { failed++ }
     }
 
     setBulkTranslating(false)
-    alert(`✅ ${done} von ${missing.length} Übersetzungen erzeugt.`)
+    if (failed === 0) {
+      toast.success(`${done} Übersetzungen erzeugt`)
+    } else {
+      toast.warning(`${done} erzeugt, ${failed} fehlgeschlagen`)
+    }
+    log({
+      action: 'translations_bulk',
+      status: failed === 0 ? 'success' : 'warning',
+      message: `Bulk-Übersetzung: ${done} erfolgreich, ${failed} fehlgeschlagen`,
+      details: { total: missing.length, done, failed },
+    })
   }
 
   // ─── Publish ─────────────────────────────────────────────────────────────────
@@ -189,13 +234,21 @@ export default function TranslationsPage() {
       if (data.ok) {
         setPublishStatus('success')
         setPublishMsg(data.message)
+        toast.success('Publish gestartet', { detail: 'Live in ~1-2 Minuten auf yusefbach.de' })
+        log({ action: 'publish_triggered', status: 'success', message: 'Translations Publish-Action gestartet' })
       } else {
+        const errMsg = data.message || data.error || 'Unbekannter Fehler'
         setPublishStatus('error')
-        setPublishMsg(data.message || data.error || 'Unbekannter Fehler')
+        setPublishMsg(errMsg)
+        toast.error('Publish fehlgeschlagen', { detail: errMsg })
+        log({ action: 'publish_failed', status: 'error', message: 'Publish-Action konnte nicht gestartet werden', error: errMsg })
       }
-    } catch {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Netzwerkfehler'
       setPublishStatus('error')
-      setPublishMsg('Netzwerkfehler beim Publish')
+      setPublishMsg(errMsg)
+      toast.error('Netzwerkfehler beim Publish', { detail: errMsg })
+      log({ action: 'publish_failed', status: 'error', message: 'Publish-Request abgebrochen', error: errMsg })
     }
 
     setTimeout(() => { setPublishStatus('idle'); setPublishMsg('') }, 8000)

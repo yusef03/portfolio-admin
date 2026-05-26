@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: "⊞" },
+  { href: "/dashboard", label: "Übersicht", icon: "⊞" },
   { href: "/dashboard/translations", label: "Translations", icon: "🌐" },
   { href: "/dashboard/bot-memory", label: "Bot Memory", icon: "🤖" },
   { href: "/dashboard/projects", label: "Projects", icon: "📁" },
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/dashboard/changelog", label: "Changelog", icon: "📋" },
   { href: "/dashboard/thoughts", label: "Thoughts", icon: "✍️" },
   { href: "/dashboard/maintenance", label: "Maintenance", icon: "⚙️" },
+  { href: "/dashboard/activity", label: "Activity Log", icon: "📜" },
 ];
 
 export default function Sidebar() {

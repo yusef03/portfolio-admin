@@ -2,6 +2,23 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/Toast";
+
+async function log(payload: {
+  action: string;
+  status: "success" | "warning" | "error" | "info";
+  message?: string;
+  details?: Record<string, unknown>;
+  error?: string;
+}) {
+  try {
+    await fetch("/api/activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, category: "maintenance" }),
+    });
+  } catch { /* silent */ }
+}
 
 interface MaintenanceSetting {
   enabled: boolean;
@@ -26,6 +43,7 @@ export default function MaintenancePage() {
   const [emergencyOpen, setEmergencyOpen] = useState(false);
   const [emergencyTyped, setEmergencyTyped] = useState("");
   const [emergencyMessage, setEmergencyMessage] = useState("");
+  const toast = useToast();
 
   useEffect(() => {
     const supabase = createClient();
@@ -62,9 +80,28 @@ export default function MaintenancePage() {
 
     if (error) {
       setError("Fehler beim Speichern: " + error.message);
+      toast.error("Maintenance konnte nicht gespeichert werden", { detail: error.message });
+      log({
+        action: "maintenance_save_failed",
+        status: "error",
+        message: "Maintenance Settings konnten nicht gespeichert werden",
+        error: error.message,
+      });
     } else {
       setSetting(next);
       setSavedAt(now);
+      const desc = next.emergency
+        ? "🚨 NOTFALL-MODUS aktiviert"
+        : next.enabled
+        ? "Wartungsmodus AN"
+        : "Wartungsmodus AUS";
+      toast.success(desc);
+      log({
+        action: next.emergency ? "maintenance_emergency_on" : next.enabled ? "maintenance_enabled" : "maintenance_disabled",
+        status: next.emergency ? "warning" : "success",
+        message: desc,
+        details: { enabled: next.enabled, emergency: next.emergency, hasMessage: !!next.message },
+      });
     }
     setSaving(false);
   }
