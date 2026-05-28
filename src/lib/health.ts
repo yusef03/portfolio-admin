@@ -257,6 +257,48 @@ export async function checkLastPublish(): Promise<ServiceHealth> {
   }
 }
 
+export async function checkStorageQuota(): Promise<ServiceHealth> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) {
+    return { name: 'Storage', status: 'unknown', message: 'ENV-Vars fehlen' }
+  }
+
+  const supa = createClient(url, key, { auth: { persistSession: false } })
+  const buckets = ['project-images', 'documents', 'thoughts-media']
+
+  const { result, ms, error } = await timed(async () => {
+    let totalBytes = 0
+    for (const bucket of buckets) {
+      const { data } = await supa.storage.from(bucket).list('', { limit: 500 })
+      if (data) {
+        for (const f of data) {
+          const size = (f.metadata as { size?: number } | null)?.size ?? 0
+          totalBytes += size
+        }
+      }
+    }
+    return totalBytes
+  })
+
+  if (error || result === null) {
+    return { name: 'Storage', status: 'unknown', latencyMs: ms, message: error ?? 'Nicht lesbar' }
+  }
+
+  const QUOTA_BYTES = 1_073_741_824 // 1 GB Free Tier
+  const pct = (result / QUOTA_BYTES) * 100
+  const usedMb = (result / 1024 / 1024).toFixed(1)
+
+  return {
+    name: 'Storage',
+    status: pct > 95 ? 'down' : pct > 80 ? 'degraded' : 'healthy',
+    latencyMs: ms,
+    message: pct > 80 ? `${usedMb} MB / 1 GB (${pct.toFixed(1)}% belegt)` : undefined,
+    meta: { usedBytes: result, quotaBytes: QUOTA_BYTES, percent: parseFloat(pct.toFixed(1)), usedMb: parseFloat(usedMb) },
+    detailsUrl: 'https://admin.yusefbach.de/dashboard/media',
+  }
+}
+
 // ─── Aggregator ───────────────────────────────────────────────────────────────
 
 export async function checkAll(): Promise<SystemHealth> {
@@ -267,6 +309,7 @@ export async function checkAll(): Promise<SystemHealth> {
     checkPortfolio(),
     checkMaintenanceMode(),
     checkLastPublish(),
+    checkStorageQuota(),
   ])
 
   // Overall = schlechtester Status

@@ -87,3 +87,40 @@ export interface Setting {
   value: unknown;
   updated_at: string;
 }
+
+// ── Media ─────────────────────────────────────────────────────────────────────
+
+export type MediaAssetType = 'image' | 'vector' | 'video' | 'document' | 'other'
+
+export interface MediaManifestEntry {
+  path: string
+  category: string
+  type: MediaAssetType
+  size_bytes: number
+  has_webp?: boolean
+  used_in: string[]
+  is_orphan: boolean
+}
+
+export interface MediaManifest {
+  generated_at: string
+  summary: {
+    count: number
+    total_bytes: number
+    total_mb: number
+    orphans: number
+    categories: string[]
+    skipped_webp: number
+  }
+  assets: MediaManifestEntry[]
+}
+
+export interface StorageFile {
+  name: string
+  size_bytes: number
+  mime_type: string
+  updated_at: string
+  public_url: string
+  bucket: string
+  used_in: string[]
+}
