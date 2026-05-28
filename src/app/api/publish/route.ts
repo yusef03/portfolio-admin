@@ -2,6 +2,10 @@
  * POST /api/publish  → triggert GitHub Actions Workflow
  * GET  /api/publish  → gibt Status des letzten Runs zurück
  *
+ * Query-Parameter:
+ *   ?target=translations  (Standard)
+ *   ?target=projects
+ *
  * Nur für eingeloggte User.
  */
 
@@ -21,18 +25,27 @@ async function getUser() {
   return user
 }
 
-export async function POST(_req: NextRequest) {
+type Target = 'translations' | 'projects'
+
+function parseTarget(req: NextRequest): Target {
+  const t = req.nextUrl.searchParams.get('target')
+  return t === 'projects' ? 'projects' : 'translations'
+}
+
+export async function POST(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
 
-  const result = await triggerPublish()
+  const target = parseTarget(req)
+  const result = await triggerPublish(target)
   return NextResponse.json(result, { status: result.ok ? 200 : 500 })
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
 
-  const status = await getLastPublishStatus()
+  const target = parseTarget(req)
+  const status = await getLastPublishStatus(target)
   return NextResponse.json(status)
 }

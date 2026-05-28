@@ -4,18 +4,27 @@
  */
 
 const REPO_OWNER = 'yusef03'
-const REPO_NAME = 'BETAPortfolioBach'
-const WORKFLOW_FILE = 'publish-translations.yml'
+const REPO_NAME  = 'BETAPortfolioBach'
+
+const WORKFLOW_FILES = {
+  translations: 'publish-translations.yml',
+  projects:     'publish-projects.yml',
+} as const
+
+type PublishTarget = keyof typeof WORKFLOW_FILES
 
 /**
- * Triggert den GitHub Actions Workflow via workflow_dispatch.
- * Gibt die Run-ID zurück wenn erfolgreich.
+ * Triggert einen GitHub Actions Workflow via workflow_dispatch.
+ * target: 'translations' | 'projects'
  */
-export async function triggerPublish(): Promise<{ ok: boolean; message: string }> {
+export async function triggerPublish(
+  target: PublishTarget = 'translations'
+): Promise<{ ok: boolean; message: string }> {
   const token = process.env.GITHUB_TOKEN
   if (!token) return { ok: false, message: 'GITHUB_TOKEN nicht gesetzt' }
 
-  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_FILE}/dispatches`
+  const workflowFile = WORKFLOW_FILES[target]
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowFile}/dispatches`
 
   const res = await fetch(url, {
     method: 'POST',
@@ -37,9 +46,11 @@ export async function triggerPublish(): Promise<{ ok: boolean; message: string }
 }
 
 /**
- * Gibt den Status des letzten Publish-Runs zurück.
+ * Gibt den Status des letzten Runs für einen Workflow zurück.
  */
-export async function getLastPublishStatus(): Promise<{
+export async function getLastPublishStatus(
+  target: PublishTarget = 'translations'
+): Promise<{
   status: 'running' | 'success' | 'failure' | 'unknown'
   url?: string
   createdAt?: string
@@ -47,7 +58,8 @@ export async function getLastPublishStatus(): Promise<{
   const token = process.env.GITHUB_TOKEN
   if (!token) return { status: 'unknown' }
 
-  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=1`
+  const workflowFile = WORKFLOW_FILES[target]
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowFile}/runs?per_page=1`
 
   try {
     const res = await fetch(url, {
@@ -69,11 +81,7 @@ export async function getLastPublishStatus(): Promise<{
         ? run.conclusion === 'success' ? 'success' : 'failure'
         : 'running'
 
-    return {
-      status,
-      url: run.html_url,
-      createdAt: run.created_at,
-    }
+    return { status, url: run.html_url, createdAt: run.created_at }
   } catch {
     return { status: 'unknown' }
   }

@@ -9,21 +9,41 @@ export interface Translation {
   updated_at: string;
 }
 
+export type ProjectStatus = "active" | "in-progress" | "completed";
+
+export interface ProjectFeature {
+  de: string;
+  en: string;
+  ar: string;
+}
+
 export interface Project {
-  id: string;
+  id: string;            // UUID (stabil)
+  slug: string;          // "studynexus" (änderbar)
   title: string;
-  subtitle_de: string;
-  subtitle_en: string;
-  subtitle_ar: string;
+  description_de: string;
+  description_en: string;
+  description_ar: string;
   badges: string[];
-  status: "active" | "completed" | "in-progress";
-  tech_stack: string[];
+  features: ProjectFeature[];
+  status: ProjectStatus;
   image_url: string;
   github_url: string | null;
   demo_url: string | null;
   subpage_url: string | null;
+  timeframe: string | null;
+  role: string | null;
   is_hero: boolean;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GithubCard {
+  title_de: string; title_en: string; title_ar: string;
+  text_de: string;  text_en: string;  text_ar: string;
+  btn_de: string;   btn_en: string;   btn_ar: string;
+  url: string;
 }
 
 export interface ChangelogEntry {
