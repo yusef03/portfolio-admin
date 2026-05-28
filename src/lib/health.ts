@@ -24,7 +24,8 @@ export interface SystemHealth {
   services: ServiceHealth[]
 }
 
-const TIMEOUT_MS = 5000
+const TIMEOUT_MS  = 5000
+const GITHUB_REPO = process.env.GITHUB_REPO ?? 'yusef03/BETAPortfolioBach'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -221,7 +222,7 @@ export async function checkLastPublish(): Promise<ServiceHealth> {
 
   const { result, ms, error } = await timed(async () => {
     const res = await fetch(
-      'https://api.github.com/repos/yusef03/BETAPortfolioBach/actions/workflows/publish-translations.yml/runs?per_page=1',
+      `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/publish-translations.yml/runs?per_page=1`,
       { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
     )
     if (!res.ok) throw new Error(`HTTP ${res.status}`)

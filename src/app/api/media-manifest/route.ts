@@ -10,7 +10,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies }         from 'next/headers'
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
-const REPO         = 'yusef03/BETAPortfolioBach'
+const REPO         = process.env.GITHUB_REPO ?? 'yusef03/BETAPortfolioBach'
 const FILE         = 'media-manifest.json'
 
 async function getUser() {
