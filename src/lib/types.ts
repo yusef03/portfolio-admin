@@ -73,13 +73,26 @@ export interface ThoughtPost {
   updated_at: string;
 }
 
+export type RoadmapScope = "portfolio" | "project";
+export type RoadmapStatus = "planned" | "in-progress" | "completed";
+
 export interface RoadmapEntry {
   id: string;
+  scope: RoadmapScope;
+  project_slug: string | null;
   title_de: string;
   title_en: string;
   title_ar: string;
-  status: "planned" | "in-progress" | "completed";
+  description_de: string;
+  description_en: string;
+  description_ar: string;
+  phase_label_de: string;
+  phase_label_en: string;
+  phase_label_ar: string;
+  status: RoadmapStatus;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Setting {

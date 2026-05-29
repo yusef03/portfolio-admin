@@ -25,11 +25,13 @@ async function getUser() {
   return user
 }
 
-type Target = 'translations' | 'projects'
+type Target = 'translations' | 'projects' | 'roadmap'
 
 function parseTarget(req: NextRequest): Target {
   const t = req.nextUrl.searchParams.get('target')
-  return t === 'projects' ? 'projects' : 'translations'
+  if (t === 'projects') return 'projects'
+  if (t === 'roadmap') return 'roadmap'
+  return 'translations'
 }
 
 export async function POST(req: NextRequest) {

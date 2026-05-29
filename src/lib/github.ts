@@ -9,6 +9,7 @@ const REPO_NAME  = 'BETAPortfolioBach'
 const WORKFLOW_FILES = {
   translations: 'publish-translations.yml',
   projects:     'publish-projects.yml',
+  roadmap:      'publish-roadmap.yml',
 } as const
 
 type PublishTarget = keyof typeof WORKFLOW_FILES
