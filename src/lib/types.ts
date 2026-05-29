@@ -57,6 +57,7 @@ export interface ChangelogEntry {
   description_de: string;
   description_en: string;
   description_ar: string;
+  published: boolean;
   created_at: string;
 }
 
