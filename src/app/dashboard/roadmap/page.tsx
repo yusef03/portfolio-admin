@@ -317,7 +317,7 @@ export default function RoadmapPage() {
       .from('projects')
       .select('id,slug,title')
       .order('sort_order')
-      .then(({ data }) => setProjects(data ?? []))
+      .then(({ data }) => setProjects((data ?? []) as unknown as Project[]))
   }, [])
 
   // Lade Roadmap-Einträge für aktuellen Scope
