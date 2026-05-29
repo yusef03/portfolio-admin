@@ -290,7 +290,8 @@ function EntryEditor({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function RoadmapPage() {
-  const { showToast } = useToast()
+  const toast = useToast()
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' | 'warning') => toast[type](msg)
 
   // Scope: 'portfolio' | project_slug string
   const [scope, setScope] = useState<string>('portfolio')
