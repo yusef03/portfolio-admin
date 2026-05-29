@@ -296,6 +296,7 @@ export default function RoadmapPage() {
   // Scope: 'portfolio' | project_slug string
   const [scope, setScope] = useState<string>('portfolio')
   const [projects, setProjects] = useState<Project[]>([])
+  const [enabledSlugs, setEnabledSlugs] = useState<string[] | null>(null)
   const [entries, setEntries] = useState<RoadmapEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [publishing, setPublishing] = useState(false)
@@ -311,13 +312,26 @@ export default function RoadmapPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // Lade Projects für Scope-Dropdown
+  // Lade Projects + roadmap_enabled_slugs (welche Projektseiten haben einen Roadmap-Bereich)
   useEffect(() => {
     supabase
       .from('projects')
       .select('id,slug,title')
       .order('sort_order')
       .then(({ data }) => setProjects((data ?? []) as unknown as Project[]))
+
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'roadmap_enabled_slugs')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value && Array.isArray(data.value)) {
+          setEnabledSlugs(data.value as string[])
+        } else {
+          setEnabledSlugs([]) // Fallback: Setting nicht gefunden → alle anzeigen
+        }
+      })
   }, [])
 
   // Lade Roadmap-Einträge für aktuellen Scope
@@ -478,7 +492,10 @@ export default function RoadmapPage() {
           className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
         >
           <option value="portfolio">🌐 Portfolio (global)</option>
-          {projects.map(p => (
+          {(enabledSlugs && enabledSlugs.length > 0
+            ? projects.filter(p => enabledSlugs.includes(p.slug))
+            : projects
+          ).map(p => (
             <option key={p.slug} value={p.slug}>📁 Projekt: {p.title}</option>
           ))}
         </select>
@@ -569,10 +586,13 @@ function ChangelogDraftModal({
   const [version, setVersion] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [category, setCategory] = useState<'feature' | 'fix' | 'refactor' | 'security'>('feature')
+  const [lang, setLang] = useState<'de' | 'en' | 'ar'>('de')
   const [title_de, setTitleDe] = useState(entry.title_de)
   const [title_en, setTitleEn] = useState(entry.title_en)
+  const [title_ar, setTitleAr] = useState(entry.title_ar || '')
   const [description_de, setDescDe] = useState(entry.description_de)
   const [description_en, setDescEn] = useState(entry.description_en)
+  const [description_ar, setDescAr] = useState(entry.description_ar || '')
   const [saving, setSaving] = useState(false)
 
   const supabaseClient = createBrowserClient(
@@ -585,8 +605,8 @@ function ChangelogDraftModal({
     setSaving(true)
     const { error } = await supabaseClient.from('changelog').insert({
       version, date, category,
-      title_de, title_en, title_ar: '',
-      description_de, description_en, description_ar: '',
+      title_de, title_en, title_ar,
+      description_de, description_en, description_ar,
     })
     setSaving(false)
     if (error) {
@@ -644,25 +664,38 @@ function ChangelogDraftModal({
           </div>
         </div>
 
-        <div className="mb-2">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Titel (DE)</label>
-          <input type="text" value={title_de} onChange={e => setTitleDe(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500" />
+        {/* Lang Tabs */}
+        <div className="flex gap-1 mb-4">
+          {(['de', 'en', 'ar'] as const).map(l => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                lang === l ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              {l.toUpperCase()}
+            </button>
+          ))}
         </div>
+
         <div className="mb-2">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Titel (EN)</label>
-          <input type="text" value={title_en} onChange={e => setTitleEn(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500" />
-        </div>
-        <div className="mb-2">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Beschreibung (DE)</label>
-          <textarea value={description_de} onChange={e => setDescDe(e.target.value)} rows={2}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 resize-none" />
+          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Titel ({lang.toUpperCase()})</label>
+          <input
+            type="text"
+            value={lang === 'de' ? title_de : lang === 'en' ? title_en : title_ar}
+            onChange={e => lang === 'de' ? setTitleDe(e.target.value) : lang === 'en' ? setTitleEn(e.target.value) : setTitleAr(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+          />
         </div>
         <div className="mb-5">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Beschreibung (EN)</label>
-          <textarea value={description_en} onChange={e => setDescEn(e.target.value)} rows={2}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 resize-none" />
+          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Beschreibung ({lang.toUpperCase()})</label>
+          <textarea
+            value={lang === 'de' ? description_de : lang === 'en' ? description_en : description_ar}
+            onChange={e => lang === 'de' ? setDescDe(e.target.value) : lang === 'en' ? setDescEn(e.target.value) : setDescAr(e.target.value)}
+            rows={2}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 resize-none"
+          />
         </div>
 
         <div className="flex gap-3">
