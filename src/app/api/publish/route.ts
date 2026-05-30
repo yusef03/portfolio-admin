@@ -25,12 +25,13 @@ async function getUser() {
   return user
 }
 
-type Target = 'translations' | 'projects' | 'roadmap'
+type Target = 'translations' | 'projects' | 'roadmap' | 'thoughts'
 
 function parseTarget(req: NextRequest): Target {
   const t = req.nextUrl.searchParams.get('target')
   if (t === 'projects') return 'projects'
   if (t === 'roadmap') return 'roadmap'
+  if (t === 'thoughts') return 'thoughts'
   return 'translations'
 }
 

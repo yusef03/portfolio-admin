@@ -63,12 +63,16 @@ export interface ChangelogEntry {
 
 export interface ThoughtPost {
   id: string;
+  slug: string;
   title: string;
+  excerpt: string | null;
   content: string;
-  lang: Lang;
+  cover_image_url: string | null;
   tags: string[];
-  image_url: string | null;
+  lang: Lang;
   status: "draft" | "published";
+  reading_minutes: number | null;
+  translation_group_id: string | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;

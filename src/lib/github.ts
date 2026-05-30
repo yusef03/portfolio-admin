@@ -10,6 +10,7 @@ const WORKFLOW_FILES = {
   translations: 'publish-translations.yml',
   projects:     'publish-projects.yml',
   roadmap:      'publish-roadmap.yml',
+  thoughts:     'publish-thoughts.yml',
 } as const
 
 type PublishTarget = keyof typeof WORKFLOW_FILES
