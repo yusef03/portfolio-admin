@@ -64,15 +64,27 @@ export interface ChangelogEntry {
 export interface ThoughtPost {
   id: string;
   slug: string;
-  title: string;
-  excerpt: string | null;
-  content: string;
+
+  // Englisch (Pflicht — immer vorhanden)
+  title_en: string;
+  excerpt_en: string | null;
+  content_en: string;
+
+  // Deutsch (optional)
+  title_de: string | null;
+  excerpt_de: string | null;
+  content_de: string | null;
+
+  // Arabisch (optional)
+  title_ar: string | null;
+  excerpt_ar: string | null;
+  content_ar: string | null;
+
+  // Sprachneutrale Felder
   cover_image_url: string | null;
   tags: string[];
-  lang: Lang;
-  status: "draft" | "published";
   reading_minutes: number | null;
-  translation_group_id: string | null;
+  status: "draft" | "published";
   published_at: string | null;
   created_at: string;
   updated_at: string;

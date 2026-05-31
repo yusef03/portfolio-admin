@@ -31,10 +31,10 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// ─── Slug Helper (identische Logik wie build-thoughts.mjs) ───────────────────
+// ─── Slug Helper ──────────────────────────────────────────────────────────────
 
 function generateSlug(title: string): string {
-  const slug = title
+  return title
     .toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
     .replace(/[àáâãåæ]/g, 'a').replace(/[çč]/g, 'c').replace(/[èéêëě]/g, 'e')
@@ -44,7 +44,6 @@ function generateSlug(title: string): string {
     .replace(/[^a-z0-9-]/g, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-  return slug
 }
 
 // ─── Textarea Cursor-Insertion ────────────────────────────────────────────────
@@ -77,22 +76,39 @@ async function uploadImage(file: File, postId: string, isInline: boolean): Promi
   const { error } = await supabase.storage
     .from('thoughts-media')
     .upload(path, file, { upsert: true, contentType: file.type })
-  if (error) return null
+  if (error) {
+    console.error('Upload error:', error)
+    return null
+  }
   const { data } = supabase.storage.from('thoughts-media').getPublicUrl(path)
   return data.publicUrl
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type LangTab = 'en' | 'de' | 'ar'
+
 type ComposerForm = {
   id: string | null
-  title: string
   slug: string
-  excerpt: string
-  content: string
+
+  // Englisch (Pflicht)
+  title_en: string
+  excerpt_en: string
+  content_en: string
+
+  // Deutsch (optional)
+  title_de: string
+  excerpt_de: string
+  content_de: string
+
+  // Arabisch (optional)
+  title_ar: string
+  excerpt_ar: string
+  content_ar: string
+
   cover_image_url: string | null
   tags: string[]
-  lang: 'de' | 'en' | 'ar'
   status: 'draft' | 'published'
   reading_minutes: number | null
   published_at: string | null
@@ -100,22 +116,43 @@ type ComposerForm = {
 
 function emptyForm(): ComposerForm {
   return {
-    id: null, title: '', slug: '', excerpt: '', content: '',
-    cover_image_url: null, tags: [], lang: 'de',
+    id: null, slug: '',
+    title_en: '', excerpt_en: '', content_en: '',
+    title_de: '', excerpt_de: '', content_de: '',
+    title_ar: '', excerpt_ar: '', content_ar: '',
+    cover_image_url: null, tags: [],
     status: 'draft', reading_minutes: null, published_at: null,
   }
 }
 
 function postToForm(p: ThoughtPost): ComposerForm {
   return {
-    id: p.id, title: p.title, slug: p.slug, excerpt: p.excerpt ?? '',
-    content: p.content, cover_image_url: p.cover_image_url,
-    tags: p.tags, lang: p.lang, status: p.status,
-    reading_minutes: p.reading_minutes, published_at: p.published_at,
+    id: p.id,
+    slug: p.slug,
+    title_en: p.title_en ?? '',
+    excerpt_en: p.excerpt_en ?? '',
+    content_en: p.content_en ?? '',
+    title_de: p.title_de ?? '',
+    excerpt_de: p.excerpt_de ?? '',
+    content_de: p.content_de ?? '',
+    title_ar: p.title_ar ?? '',
+    excerpt_ar: p.excerpt_ar ?? '',
+    content_ar: p.content_ar ?? '',
+    cover_image_url: p.cover_image_url,
+    tags: p.tags,
+    status: p.status,
+    reading_minutes: p.reading_minutes,
+    published_at: p.published_at,
   }
 }
 
 // ─── Composer ─────────────────────────────────────────────────────────────────
+
+const TAB_CONFIG: { id: LangTab; label: string; flag: string; required: boolean }[] = [
+  { id: 'en', label: 'EN', flag: '🇬🇧', required: true },
+  { id: 'de', label: 'DE', flag: '🇩🇪', required: false },
+  { id: 'ar', label: 'AR', flag: '🇸🇦', required: false },
+]
 
 function ThoughtsComposer({
   initialForm,
@@ -131,6 +168,7 @@ function ThoughtsComposer({
   const toast = useToast()
 
   const [form, setForm] = useState<ComposerForm>(initialForm)
+  const [activeTab, setActiveTab] = useState<LangTab>('en')
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(initialForm.id !== null)
   const [isSaving, setIsSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -156,7 +194,7 @@ function ThoughtsComposer({
     return existingSlugs.includes(trimmed)
   })()
 
-  // ── Auto-Save Trigger ────────────────────────────────────────────────────────
+  // ── Auto-Save ────────────────────────────────────────────────────────────────
 
   const triggerAutoSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -169,20 +207,27 @@ function ThoughtsComposer({
     triggerAutoSave()
   }
 
-  // ── Save (INSERT or UPDATE) ──────────────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────────────────
 
   async function doSave(f: ComposerForm, overrideStatus?: 'draft' | 'published'): Promise<ThoughtPost | null> {
     setIsSaving(true)
 
     const slug = f.slug.trim() || `post-${crypto.randomUUID().slice(0, 8)}`
+
+    // Leere optionale Felder → null
     const payload: Record<string, unknown> = {
-      title: f.title,
       slug,
-      excerpt: f.excerpt.trim() || null,
-      content: f.content,
+      title_en: f.title_en.trim(),
+      excerpt_en: f.excerpt_en.trim() || null,
+      content_en: f.content_en,
+      title_de: f.title_de.trim() || null,
+      excerpt_de: f.excerpt_de.trim() || null,
+      content_de: f.content_de.trim() || null,
+      title_ar: f.title_ar.trim() || null,
+      excerpt_ar: f.excerpt_ar.trim() || null,
+      content_ar: f.content_ar.trim() || null,
       cover_image_url: f.cover_image_url,
       tags: f.tags,
-      lang: f.lang,
       status: overrideStatus ?? f.status,
       reading_minutes: f.reading_minutes,
       published_at: f.published_at,
@@ -231,6 +276,11 @@ function ThoughtsComposer({
   // ── Publish ──────────────────────────────────────────────────────────────────
 
   async function handlePublish() {
+    if (!formRef.current.title_en.trim()) {
+      toast.error('EN-Titel ist Pflicht vor dem Veröffentlichen')
+      setActiveTab('en')
+      return
+    }
     const nowIso = new Date().toISOString()
     const publishedAt = form.published_at ?? nowIso
     const toSave: ComposerForm = { ...formRef.current, status: 'published', published_at: publishedAt }
@@ -247,7 +297,7 @@ function ThoughtsComposer({
       if (data.ok) {
         toast.success('GitHub Action gestartet — live in ~2 Min')
         setPublishStatus('success')
-        await log({ action: 'publish', status: 'success', message: form.title })
+        await log({ action: 'publish', status: 'success', message: form.title_en })
       } else {
         toast.error(`Publish fehlgeschlagen: ${data.message}`)
         setPublishStatus('failure')
@@ -269,7 +319,7 @@ function ThoughtsComposer({
     setUploadingCover(true)
     const url = await uploadImage(file, postId, false)
     setUploadingCover(false)
-    if (!url) { toast.error('Cover-Upload fehlgeschlagen'); return }
+    if (!url) { toast.error('Cover-Upload fehlgeschlagen — Storage-Policy prüfen'); return }
     setForm(f => ({ ...f, cover_image_url: url }))
     formRef.current.cover_image_url = url
     markDirty()
@@ -285,11 +335,15 @@ function ThoughtsComposer({
     setUploadingInline(true)
     const url = await uploadImage(file, postId, true)
     setUploadingInline(false)
-    if (!url) { toast.error('Bild-Upload fehlgeschlagen'); return }
+    if (!url) { toast.error('Bild-Upload fehlgeschlagen — Storage-Policy prüfen'); return }
     if (editorRef.current) {
+      const contentKey = `content_${activeTab}` as keyof ComposerForm
+      const currentContent = String(form[contentKey] ?? '')
       const newContent = insertAtCursor(editorRef.current, `![${alt}](${url})`)
-      setForm(f => ({ ...f, content: newContent }))
-      formRef.current.content = newContent
+      const patch = { [contentKey]: newContent } as Partial<ComposerForm>
+      setForm(f => ({ ...f, ...patch }))
+      ;(formRef.current as Record<string, unknown>)[contentKey] = newContent
+      void currentContent // suppress unused warning
       markDirty()
     }
   }
@@ -319,7 +373,8 @@ function ThoughtsComposer({
   function toolbar(action: string) {
     const el = editorRef.current
     if (!el) return
-    let newContent = form.content
+    const contentKey = `content_${activeTab}` as keyof ComposerForm
+    let newContent = String(form[contentKey] ?? '')
     switch (action) {
       case 'bold':   newContent = insertAtCursor(el, '**', '**'); break
       case 'italic': newContent = insertAtCursor(el, '*', '*'); break
@@ -338,8 +393,9 @@ function ThoughtsComposer({
       }
       default: return
     }
-    setForm(f => ({ ...f, content: newContent }))
-    formRef.current.content = newContent
+    const patch = { [contentKey]: newContent } as Partial<ComposerForm>
+    setForm(f => ({ ...f, ...patch }))
+    ;(formRef.current as Record<string, unknown>)[contentKey] = newContent
     markDirty()
   }
 
@@ -362,11 +418,19 @@ function ThoughtsComposer({
     markDirty()
   }
 
-  // ── Cleanup ──────────────────────────────────────────────────────────────────
-
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }, [])
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── Aktiver Tab: aktuelle Felder ─────────────────────────────────────────────
+
+  const titleKey    = `title_${activeTab}`    as keyof ComposerForm
+  const excerptKey  = `excerpt_${activeTab}`  as keyof ComposerForm
+  const contentKey  = `content_${activeTab}`  as keyof ComposerForm
+
+  function setTabField(key: keyof ComposerForm, value: string) {
+    setForm(f => ({ ...f, [key]: value }))
+    ;(formRef.current as Record<string, unknown>)[key] = value
+    markDirty()
+  }
 
   function TBtn({ label, action, title }: { label: string; action: string; title: string }) {
     return (
@@ -379,6 +443,12 @@ function ThoughtsComposer({
         {label}
       </button>
     )
+  }
+
+  // ── Sprach-Badges für Listeneintrag ──────────────────────────────────────────
+
+  function tabHasContent(tab: LangTab): boolean {
+    return String(form[`title_${tab}` as keyof ComposerForm] ?? '').trim().length > 0
   }
 
   return (
@@ -395,29 +465,11 @@ function ThoughtsComposer({
 
         <div className="flex-1 min-w-0 text-xs">
           {isSaving && <span className="text-gray-500">Speichert…</span>}
-          {!isSaving && savedAt && !isDirty && (
-            <span className="text-green-500">✓ Gespeichert</span>
-          )}
+          {!isSaving && savedAt && !isDirty && <span className="text-green-500">✓ Gespeichert</span>}
           {isDirty && !isSaving && <span className="text-yellow-600">● Ungespeichert</span>}
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Sprache */}
-          <select
-            value={form.lang}
-            onChange={e => {
-              setForm(f => ({ ...f, lang: e.target.value as 'de' | 'en' | 'ar' }))
-              formRef.current.lang = e.target.value as 'de' | 'en' | 'ar'
-              markDirty()
-            }}
-            className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-violet-500"
-          >
-            <option value="de">🇩🇪 DE</option>
-            <option value="en">🇬🇧 EN</option>
-            <option value="ar">🇸🇦 AR</option>
-          </select>
-
-          {/* Entwurf speichern */}
           <button
             onClick={() => doSave(form)}
             disabled={isSaving}
@@ -425,11 +477,9 @@ function ThoughtsComposer({
           >
             Entwurf speichern
           </button>
-
-          {/* Publish */}
           <button
             onClick={handlePublish}
-            disabled={publishing || isSaving || !form.title.trim()}
+            disabled={publishing || isSaving || !form.title_en.trim()}
             className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
               publishStatus === 'success'
                 ? 'bg-green-900/40 text-green-400 border border-green-700'
@@ -440,31 +490,6 @@ function ThoughtsComposer({
           >
             {publishing ? '⟳ Publiziere…' : publishStatus === 'success' ? '✓ Gestartet' : '🚀 Live'}
           </button>
-        </div>
-      </div>
-
-      {/* ── Titel + Status ───────────────────────────────────────────────────── */}
-      <div className="flex gap-3 mb-3 flex-shrink-0">
-        <input
-          type="text"
-          value={form.title}
-          onChange={e => {
-            const title = e.target.value
-            const slug = (!slugManuallyEdited && !isEverPublished) ? generateSlug(title) : form.slug
-            setForm(f => ({ ...f, title, slug }))
-            formRef.current.title = title
-            formRef.current.slug = slug
-            markDirty()
-          }}
-          placeholder="Titel des Beitrags…"
-          className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-base font-semibold placeholder-gray-600 focus:outline-none focus:border-violet-500"
-        />
-        <div className={`flex items-center px-3 rounded-lg text-xs font-medium border flex-shrink-0 ${
-          form.status === 'published'
-            ? 'bg-green-900/20 text-green-400 border-green-800'
-            : 'bg-gray-800/50 text-gray-500 border-gray-700'
-        }`}>
-          {form.status === 'published' ? '● Live' : '○ Entwurf'}
         </div>
       </div>
 
@@ -485,7 +510,7 @@ function ThoughtsComposer({
                 formRef.current.slug = slug
                 markDirty()
               }}
-              placeholder="url-slug"
+              placeholder="url-slug (auto aus EN-Titel)"
               className={`flex-1 bg-gray-900 border rounded-lg px-2 py-1.5 text-gray-300 text-xs font-mono focus:outline-none min-w-0 ${
                 slugLocked
                   ? 'border-gray-800 cursor-not-allowed opacity-60'
@@ -497,7 +522,7 @@ function ThoughtsComposer({
           </div>
           {slugTaken && <p className="text-red-400 text-xs mt-0.5 ml-10">Slug bereits vergeben</p>}
           {slugLocked && (
-            <p className="text-yellow-600 text-xs mt-0.5 ml-10">⚠ Gesperrt nach Veröffentlichung (Permalink-Stabilität)</p>
+            <p className="text-yellow-600 text-xs mt-0.5 ml-10">⚠ Gesperrt nach Veröffentlichung</p>
           )}
         </div>
 
@@ -507,10 +532,7 @@ function ThoughtsComposer({
             {form.tags.map(tag => (
               <span key={tag} className="flex items-center gap-1 bg-violet-900/40 text-violet-300 text-xs px-2 py-0.5 rounded-full border border-violet-700/50">
                 {tag}
-                <button
-                  onClick={() => removeTag(tag)}
-                  className="text-violet-400 hover:text-white leading-none"
-                >×</button>
+                <button onClick={() => removeTag(tag)} className="text-violet-400 hover:text-white leading-none">×</button>
               </span>
             ))}
             <input
@@ -523,7 +545,7 @@ function ThoughtsComposer({
                   removeTag(form.tags[form.tags.length - 1])
                 }
               }}
-              placeholder={form.tags.length === 0 ? 'Tags: Enter oder Komma zum Hinzufügen…' : '+ Tag'}
+              placeholder={form.tags.length === 0 ? 'Tags (Enter oder , zum Hinzufügen — sprachneutral)…' : '+ Tag'}
               className="flex-1 min-w-[100px] bg-transparent text-white text-xs outline-none placeholder-gray-600"
             />
           </div>
@@ -534,49 +556,83 @@ function ThoughtsComposer({
       <div className="mb-3 flex-shrink-0">
         {form.cover_image_url ? (
           <div className="flex items-center gap-3">
-            <img
-              src={form.cover_image_url}
-              alt="Cover"
-              className="h-16 w-28 object-cover rounded-lg border border-gray-700"
-            />
+            <img src={form.cover_image_url} alt="Cover" className="h-16 w-28 object-cover rounded-lg border border-gray-700" />
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-400">Titelbild (Cover)</span>
+              <span className="text-xs text-gray-400">Titelbild (sprachneutral)</span>
               <div className="flex gap-3">
                 <label className="text-xs text-violet-400 hover:text-violet-300 cursor-pointer transition-colors">
                   Ersetzen
-                  <input type="file" accept="image/*" className="hidden" onChange={e => {
-                    const f = e.target.files?.[0]; if (f) handleCoverUpload(f)
-                  }} />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
                 </label>
                 <button
-                  onClick={() => {
-                    setForm(f => ({ ...f, cover_image_url: null }))
-                    formRef.current.cover_image_url = null
-                    markDirty()
-                  }}
+                  onClick={() => { setForm(f => ({ ...f, cover_image_url: null })); formRef.current.cover_image_url = null; markDirty() }}
                   className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-                >
-                  Entfernen
-                </button>
+                >Entfernen</button>
               </div>
             </div>
           </div>
         ) : (
           <label className={`flex items-center gap-2 px-3 py-2 border border-dashed rounded-lg cursor-pointer transition-colors text-xs w-fit ${
-            uploadingCover
-              ? 'border-gray-700 text-gray-600 cursor-wait'
-              : 'border-gray-700 text-gray-500 hover:border-violet-600 hover:text-violet-400'
+            uploadingCover ? 'border-gray-700 text-gray-600 cursor-wait' : 'border-gray-700 text-gray-500 hover:border-violet-600 hover:text-violet-400'
           }`}>
-            {uploadingCover ? '⟳ Lade hoch…' : '🖼 Titelbild hochladen (16:9 empfohlen — kein Cover = Lila Gradient-Fallback)'}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={uploadingCover}
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }}
-            />
+            {uploadingCover ? '⟳ Lade hoch…' : '🖼 Titelbild hochladen (16:9 empfohlen — sprachneutral)'}
+            <input type="file" accept="image/*" className="hidden" disabled={uploadingCover} onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
           </label>
         )}
+      </div>
+
+      {/* ── Sprach-Tabs ──────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 mb-3 flex-shrink-0 border-b border-gray-800 pb-0">
+        {TAB_CONFIG.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id
+                ? 'border-violet-500 text-white bg-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+            }`}
+          >
+            <span>{tab.flag}</span>
+            <span>{tab.label}</span>
+            {tab.required && <span className="text-red-400 text-xs">*</span>}
+            {!tab.required && tabHasContent(tab.id) && (
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+            )}
+            {!tab.required && !tabHasContent(tab.id) && (
+              <span className="text-gray-600 text-xs">optional</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Titel (aktueller Tab) ─────────────────────────────────────────────── */}
+      <div className="mb-3 flex gap-2 flex-shrink-0">
+        <input
+          type="text"
+          value={String(form[titleKey] ?? '')}
+          onChange={e => {
+            const val = e.target.value
+            setTabField(titleKey, val)
+            // Slug auto-generieren aus EN-Titel (solange nicht manuell bearbeitet und nicht published)
+            if (activeTab === 'en' && !slugManuallyEdited && !isEverPublished) {
+              const slug = generateSlug(val)
+              setForm(f => ({ ...f, slug }))
+              formRef.current.slug = slug
+            }
+          }}
+          placeholder={`Titel ${activeTab === 'en' ? '(Pflicht)' : '(optional)'}…`}
+          className={`flex-1 bg-gray-900 border rounded-lg px-3 py-2.5 text-white text-base font-semibold placeholder-gray-600 focus:outline-none focus:border-violet-500 ${
+            activeTab === 'en' && !form.title_en.trim() ? 'border-red-800' : 'border-gray-700'
+          }`}
+        />
+        <div className={`flex items-center px-3 rounded-lg text-xs font-medium border flex-shrink-0 ${
+          form.status === 'published'
+            ? 'bg-green-900/20 text-green-400 border-green-800'
+            : 'bg-gray-800/50 text-gray-500 border-gray-700'
+        }`}>
+          {form.status === 'published' ? '● Live' : '○ Entwurf'}
+        </div>
       </div>
 
       {/* ── Editor + Preview ─────────────────────────────────────────────────── */}
@@ -589,32 +645,26 @@ function ThoughtsComposer({
             <TBtn label="B" action="bold" title="Fett (**text**)" />
             <TBtn label="I" action="italic" title="Kursiv (*text*)" />
             <span className="w-px h-5 bg-gray-700 mx-1 self-center" />
-            <TBtn label="H2" action="h2" title="Überschrift 2 (## )" />
-            <TBtn label="H3" action="h3" title="Überschrift 3 (### )" />
+            <TBtn label="H2" action="h2" title="Überschrift 2" />
+            <TBtn label="H3" action="h3" title="Überschrift 3" />
             <span className="w-px h-5 bg-gray-700 mx-1 self-center" />
-            <TBtn label="&ldquo;" action="quote" title="Blockquote (> )" />
-            <TBtn label="&bull;" action="ul" title="Aufzählung (- )" />
+            <TBtn label="&ldquo;" action="quote" title="Blockquote" />
+            <TBtn label="&bull;" action="ul" title="Aufzählung" />
             <TBtn label="&lt;&gt;" action="code" title="Codeblock" />
             <span className="w-px h-5 bg-gray-700 mx-1 self-center" />
             <TBtn label="🔗" action="link" title="Link [Text](url)" />
-            <TBtn label="🖼" action="image" title="Bild einfügen (öffnet Datei-Dialog)" />
-            {uploadingInline && (
-              <span className="text-xs text-gray-500 self-center ml-2">⟳ Lade Bild…</span>
-            )}
+            <TBtn label="🖼" action="image" title="Bild einfügen" />
+            {uploadingInline && <span className="text-xs text-gray-500 self-center ml-2">⟳ Lade Bild…</span>}
           </div>
-
           <textarea
             ref={editorRef}
-            value={form.content}
-            onChange={e => {
-              setForm(f => ({ ...f, content: e.target.value }))
-              formRef.current.content = e.target.value
-              markDirty()
-            }}
+            value={String(form[contentKey] ?? '')}
+            onChange={e => setTabField(contentKey, e.target.value)}
             onPaste={handlePaste}
             onDrop={handleDrop}
             onDragOver={e => e.preventDefault()}
-            placeholder="Schreibe hier in Markdown…&#10;&#10;Tipp: Bilder per Drag&amp;Drop oder Einfügen (Ctrl+V) direkt im Editor hochladen."
+            placeholder={`Inhalt auf ${activeTab === 'en' ? 'Englisch (Pflicht)' : activeTab === 'de' ? 'Deutsch (optional)' : 'Arabisch (optional)'}…\n\nTipp: Bilder per Drag&Drop oder Ctrl+V einfügen.`}
+            dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
             className="flex-1 w-full bg-gray-900 border border-gray-700 rounded-b-lg px-4 py-3 text-white text-sm font-mono resize-none focus:outline-none focus:border-violet-500 leading-relaxed"
           />
         </div>
@@ -622,9 +672,10 @@ function ThoughtsComposer({
         {/* Preview */}
         <div className="flex flex-col flex-1 min-w-0">
           <p className="text-xs text-gray-500 mb-1.5 px-1 font-medium uppercase tracking-widest flex-shrink-0">
-            Vorschau
+            Vorschau ({activeTab.toUpperCase()})
           </p>
           <div
+            dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
             className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-5 py-4 overflow-auto text-sm
               [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:mt-4 [&_h1]:mb-2
               [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mt-4 [&_h2]:mb-2
@@ -644,9 +695,9 @@ function ThoughtsComposer({
               [&_hr]:border-gray-700 [&_hr]:my-4
               [&_table]:w-full [&_table]:text-sm [&_th]:text-left [&_th]:text-gray-400 [&_th]:pb-2 [&_td]:text-gray-300 [&_td]:py-1"
           >
-            {form.content ? (
+            {String(form[contentKey] ?? '') ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {form.content}
+                {String(form[contentKey] ?? '')}
               </ReactMarkdown>
             ) : (
               <p className="text-gray-600 italic">Vorschau erscheint beim Schreiben…</p>
@@ -655,17 +706,14 @@ function ThoughtsComposer({
         </div>
       </div>
 
-      {/* ── Auszug ──────────────────────────────────────────────────────────── */}
+      {/* ── Excerpt (aktueller Tab) ───────────────────────────────────────────── */}
       <div className="mt-3 flex-shrink-0">
         <input
           type="text"
-          value={form.excerpt}
-          onChange={e => {
-            setForm(f => ({ ...f, excerpt: e.target.value }))
-            formRef.current.excerpt = e.target.value
-            markDirty()
-          }}
-          placeholder="Auszug (optional — sonst wird er beim Build automatisch aus dem Inhalt generiert)"
+          value={String(form[excerptKey] ?? '')}
+          onChange={e => setTabField(excerptKey, e.target.value)}
+          placeholder={`Auszug auf ${activeTab === 'en' ? 'Englisch' : activeTab === 'de' ? 'Deutsch' : 'Arabisch'} (optional — wird beim Build automatisch generiert)`}
+          dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
           className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-gray-300 text-sm focus:outline-none focus:border-violet-500 placeholder-gray-600"
         />
       </div>
@@ -676,8 +724,6 @@ function ThoughtsComposer({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 type Filter = 'all' | 'draft' | 'published'
-
-const LANG_LABELS: Record<string, string> = { de: '🇩🇪 DE', en: '🇬🇧 EN', ar: '🇸🇦 AR' }
 
 export default function ThoughtsPage() {
   const toast = useToast()
@@ -703,16 +749,12 @@ export default function ThoughtsPage() {
 
   useEffect(() => { loadPosts() }, [loadPosts])
 
-  // ── Delete ──────────────────────────────────────────────────────────────────
-
   async function deletePost(post: ThoughtPost) {
-    if (!confirm(`Beitrag „${post.title || 'Entwurf'}" wirklich löschen?`)) return
+    const displayTitle = post.title_en || post.title_de || 'Entwurf'
+    if (!confirm(`Beitrag „${displayTitle}" wirklich löschen?`)) return
 
-    // Bucket aufräumen (best effort)
     try {
-      const { data: files } = await supabase.storage
-        .from('thoughts-media')
-        .list(`thoughts/${post.id}`)
+      const { data: files } = await supabase.storage.from('thoughts-media').list(`thoughts/${post.id}`)
       if (files?.length) {
         const paths = files.map(f => `thoughts/${post.id}/${f.name}`)
         await supabase.storage.from('thoughts-media').remove(paths)
@@ -724,12 +766,10 @@ export default function ThoughtsPage() {
       toast.error(`Fehler: ${error.message}`)
     } else {
       toast.success('Beitrag gelöscht')
-      await log({ action: 'delete', status: 'success', message: post.title })
+      await log({ action: 'delete', status: 'success', message: displayTitle })
       setPosts(ps => ps.filter(p => p.id !== post.id))
     }
   }
-
-  // ── List Update after Save ───────────────────────────────────────────────────
 
   function handleSaved(updated: ThoughtPost) {
     setPosts(ps => {
@@ -739,16 +779,9 @@ export default function ThoughtsPage() {
     })
   }
 
-  // ── Slug Uniqueness for Composer ─────────────────────────────────────────────
-
   const editingSlug = composerForm?.slug ?? null
-  const existingSlugs = posts
-    .filter(p => p.slug !== editingSlug)
-    .map(p => p.slug)
-
+  const existingSlugs = posts.filter(p => p.slug !== editingSlug).map(p => p.slug)
   const filtered = posts.filter(p => filter === 'all' || p.status === filter)
-
-  // ── Composer View ────────────────────────────────────────────────────────────
 
   if (composerForm !== null) {
     return (
@@ -761,16 +794,13 @@ export default function ThoughtsPage() {
     )
   }
 
-  // ── List View ────────────────────────────────────────────────────────────────
-
   return (
     <div className="max-w-3xl mx-auto">
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-white">Thoughts</h2>
-          <p className="text-gray-400 text-sm mt-1">Blog-Posts schreiben, bearbeiten, veröffentlichen</p>
+          <p className="text-gray-400 text-sm mt-1">Blog-Posts schreiben, bearbeiten, veröffentlichen — ein Post in EN/DE/AR</p>
         </div>
         <button
           onClick={() => setComposerForm(emptyForm())}
@@ -787,9 +817,7 @@ export default function ThoughtsPage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              filter === f
-                ? 'bg-violet-600/20 text-violet-300 font-medium'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              filter === f ? 'bg-violet-600/20 text-violet-300 font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
             {f === 'all' ? 'Alle' : f === 'draft' ? 'Entwürfe' : 'Live'}
@@ -814,73 +842,66 @@ export default function ThoughtsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(post => (
-            <div
-              key={post.id}
-              className={`flex items-center gap-3 p-3 bg-gray-900 border rounded-lg group hover:border-gray-700 transition-colors ${
-                post.status === 'published' ? 'border-gray-800' : 'border-gray-800 opacity-75'
-              }`}
-            >
-              {/* Cover Thumbnail */}
-              {post.cover_image_url ? (
-                <img
-                  src={post.cover_image_url}
-                  alt=""
-                  className="w-14 h-9 object-cover rounded flex-shrink-0"
-                />
-              ) : (
-                <div className="w-14 h-9 rounded flex-shrink-0 bg-gradient-to-br from-violet-900 to-purple-800 opacity-50" />
-              )}
+          {filtered.map(post => {
+            const displayTitle = post.title_en || post.title_de || post.title_ar || ''
+            const hasDe = Boolean(post.title_de)
+            const hasAr = Boolean(post.title_ar)
+            return (
+              <div
+                key={post.id}
+                className={`flex items-center gap-3 p-3 bg-gray-900 border rounded-lg group hover:border-gray-700 transition-colors ${
+                  post.status === 'published' ? 'border-gray-800' : 'border-gray-800 opacity-75'
+                }`}
+              >
+                {post.cover_image_url ? (
+                  <img src={post.cover_image_url} alt="" className="w-14 h-9 object-cover rounded flex-shrink-0" />
+                ) : (
+                  <div className="w-14 h-9 rounded flex-shrink-0 bg-gradient-to-br from-violet-900 to-purple-800 opacity-50" />
+                )}
 
-              {/* Meta */}
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">
-                  {post.title || <span className="text-gray-600 italic">Kein Titel</span>}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-gray-500 text-xs">
-                    {fmtDate(post.published_at ?? post.created_at)}
-                  </span>
-                  <span className="text-gray-700">·</span>
-                  <span className="text-gray-500 text-xs">{LANG_LABELS[post.lang] ?? post.lang}</span>
-                  {post.tags.slice(0, 3).map(tag => (
-                    <span
-                      key={tag}
-                      className="text-xs text-violet-400 bg-violet-900/20 px-1.5 py-0.5 rounded-full border border-violet-800/40"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                  {post.tags.length > 3 && (
-                    <span className="text-xs text-gray-600">+{post.tags.length - 3}</span>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">
+                    {displayTitle || <span className="text-gray-600 italic">Kein Titel</span>}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="text-gray-500 text-xs">{fmtDate(post.published_at ?? post.created_at)}</span>
+                    <span className="text-gray-700">·</span>
+                    {/* Sprach-Badges */}
+                    <span className="text-green-400 text-xs font-medium">EN</span>
+                    {hasDe && <span className="text-gray-400 text-xs">DE</span>}
+                    {hasAr && <span className="text-gray-400 text-xs">AR</span>}
+                    {post.tags.slice(0, 3).map(tag => (
+                      <span key={tag} className="text-xs text-violet-400 bg-violet-900/20 px-1.5 py-0.5 rounded-full border border-violet-800/40">
+                        {tag}
+                      </span>
+                    ))}
+                    {post.tags.length > 3 && <span className="text-xs text-gray-600">+{post.tags.length - 3}</span>}
+                  </div>
+                </div>
+
+                <span className={`text-xs px-2 py-0.5 rounded border flex-shrink-0 ${
+                  post.status === 'published'
+                    ? 'text-green-400 bg-green-900/20 border-green-800'
+                    : 'text-gray-500 bg-gray-800 border-gray-700'
+                }`}>
+                  {post.status === 'published' ? '● Live' : '○ Entwurf'}
+                </span>
+
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => setComposerForm(postToForm(post))}
+                    className="text-gray-500 hover:text-white p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
+                    title="Bearbeiten"
+                  >✎</button>
+                  <button
+                    onClick={() => deletePost(post)}
+                    className="text-gray-600 hover:text-red-400 p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
+                    title="Löschen"
+                  >🗑</button>
                 </div>
               </div>
-
-              {/* Status Badge */}
-              <span className={`text-xs px-2 py-0.5 rounded border flex-shrink-0 ${
-                post.status === 'published'
-                  ? 'text-green-400 bg-green-900/20 border-green-800'
-                  : 'text-gray-500 bg-gray-800 border-gray-700'
-              }`}>
-                {post.status === 'published' ? '● Live' : '○ Entwurf'}
-              </span>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button
-                  onClick={() => setComposerForm(postToForm(post))}
-                  className="text-gray-500 hover:text-white p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-                  title="Bearbeiten"
-                >✎</button>
-                <button
-                  onClick={() => deletePost(post)}
-                  className="text-gray-600 hover:text-red-400 p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-                  title="Löschen"
-                >🗑</button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
