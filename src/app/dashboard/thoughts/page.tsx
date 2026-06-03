@@ -438,7 +438,7 @@ function ThoughtsComposer({
         type="button"
         onClick={() => toolbar(action)}
         title={title}
-        className="px-2 py-1 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors font-mono"
+        className="px-2 py-1 text-sm text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)] rounded transition-colors font-mono"
       >
         {label}
       </button>
@@ -455,16 +455,16 @@ function ThoughtsComposer({
     <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-800 flex-shrink-0">
+      <div className="flex items-center gap-4 mb-4 pb-4 border-b border-[var(--color-border)] flex-shrink-0">
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-white text-sm transition-colors flex items-center gap-1"
+          className="text-[var(--color-text-2)] hover:text-[var(--color-text-1)] text-sm transition-colors flex items-center gap-1"
         >
           ← Alle Posts
         </button>
 
         <div className="flex-1 min-w-0 text-xs">
-          {isSaving && <span className="text-gray-500">Speichert…</span>}
+          {isSaving && <span className="text-[var(--color-text-3)]">Speichert…</span>}
           {!isSaving && savedAt && !isDirty && <span className="text-green-500">✓ Gespeichert</span>}
           {isDirty && !isSaving && <span className="text-yellow-600">● Ungespeichert</span>}
         </div>
@@ -473,7 +473,7 @@ function ThoughtsComposer({
           <button
             onClick={() => doSave(form)}
             disabled={isSaving}
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg text-xs transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-1)] rounded-lg text-xs transition-colors disabled:opacity-50"
           >
             Entwurf speichern
           </button>
@@ -485,7 +485,7 @@ function ThoughtsComposer({
                 ? 'bg-green-900/40 text-green-400 border border-green-700'
                 : publishStatus === 'failure'
                 ? 'bg-red-900/40 text-red-400 border border-red-700'
-                : 'bg-violet-600 hover:bg-violet-700 text-white'
+                : 'bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] text-[var(--color-text-1)]'
             }`}
           >
             {publishing ? '⟳ Publiziere…' : publishStatus === 'success' ? '✓ Gestartet' : '🚀 Live'}
@@ -498,7 +498,7 @@ function ThoughtsComposer({
         {/* Slug */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500 flex-shrink-0">Slug:</span>
+            <span className="text-xs text-[var(--color-text-3)] flex-shrink-0">Slug:</span>
             <input
               type="text"
               value={form.slug}
@@ -511,12 +511,12 @@ function ThoughtsComposer({
                 markDirty()
               }}
               placeholder="url-slug (auto aus EN-Titel)"
-              className={`flex-1 bg-gray-900 border rounded-lg px-2 py-1.5 text-gray-300 text-xs font-mono focus:outline-none min-w-0 ${
+              className={`flex-1 bg-[var(--color-surface-1)] border rounded-lg px-2 py-1.5 text-[var(--color-text-2)] text-xs font-mono focus:outline-none min-w-0 ${
                 slugLocked
-                  ? 'border-gray-800 cursor-not-allowed opacity-60'
+                  ? 'border-[var(--color-border)] cursor-not-allowed opacity-60'
                   : slugTaken
                   ? 'border-red-600 focus:border-red-500'
-                  : 'border-gray-700 focus:border-violet-500'
+                  : 'border-[var(--color-border-strong)] focus:border-[var(--color-accent)]'
               }`}
             />
           </div>
@@ -528,11 +528,11 @@ function ThoughtsComposer({
 
         {/* Tags */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 min-h-[34px] focus-within:border-violet-500 transition-colors">
+          <div className="flex flex-wrap items-center gap-1.5 bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-2 py-1.5 min-h-[34px] focus-within:border-[var(--color-accent)] transition-colors">
             {form.tags.map(tag => (
-              <span key={tag} className="flex items-center gap-1 bg-violet-900/40 text-violet-300 text-xs px-2 py-0.5 rounded-full border border-violet-700/50">
+              <span key={tag} className="flex items-center gap-1 bg-violet-900/40 text-[var(--color-accent)] text-xs px-2 py-0.5 rounded-full border border-violet-700/50">
                 {tag}
-                <button onClick={() => removeTag(tag)} className="text-violet-400 hover:text-white leading-none">×</button>
+                <button onClick={() => removeTag(tag)} className="text-[var(--color-accent)] hover:text-[var(--color-text-1)] leading-none">×</button>
               </span>
             ))}
             <input
@@ -546,7 +546,7 @@ function ThoughtsComposer({
                 }
               }}
               placeholder={form.tags.length === 0 ? 'Tags (Enter oder , zum Hinzufügen — sprachneutral)…' : '+ Tag'}
-              className="flex-1 min-w-[100px] bg-transparent text-white text-xs outline-none placeholder-gray-600"
+              className="flex-1 min-w-[100px] bg-transparent text-[var(--color-text-1)] text-xs outline-none placeholder-gray-600"
             />
           </div>
         </div>
@@ -556,24 +556,24 @@ function ThoughtsComposer({
       <div className="mb-3 flex-shrink-0">
         {form.cover_image_url ? (
           <div className="flex items-center gap-3">
-            <img src={form.cover_image_url} alt="Cover" className="h-16 w-28 object-cover rounded-lg border border-gray-700" />
+            <img src={form.cover_image_url} alt="Cover" className="h-16 w-28 object-cover rounded-lg border border-[var(--color-border-strong)]" />
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-400">Titelbild (sprachneutral)</span>
+              <span className="text-xs text-[var(--color-text-2)]">Titelbild (sprachneutral)</span>
               <div className="flex gap-3">
-                <label className="text-xs text-violet-400 hover:text-violet-300 cursor-pointer transition-colors">
+                <label className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent)] cursor-pointer transition-colors">
                   Ersetzen
                   <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
                 </label>
                 <button
                   onClick={() => { setForm(f => ({ ...f, cover_image_url: null })); formRef.current.cover_image_url = null; markDirty() }}
-                  className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                  className="text-xs text-[var(--color-text-3)] hover:text-red-400 transition-colors"
                 >Entfernen</button>
               </div>
             </div>
           </div>
         ) : (
           <label className={`flex items-center gap-2 px-3 py-2 border border-dashed rounded-lg cursor-pointer transition-colors text-xs w-fit ${
-            uploadingCover ? 'border-gray-700 text-gray-600 cursor-wait' : 'border-gray-700 text-gray-500 hover:border-violet-600 hover:text-violet-400'
+            uploadingCover ? 'border-[var(--color-border-strong)] text-[var(--color-text-3)] cursor-wait' : 'border-[var(--color-border-strong)] text-[var(--color-text-3)] hover:border-[var(--color-brand)] hover:text-[var(--color-accent)]'
           }`}>
             {uploadingCover ? '⟳ Lade hoch…' : '🖼 Titelbild hochladen (16:9 empfohlen — sprachneutral)'}
             <input type="file" accept="image/*" className="hidden" disabled={uploadingCover} onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
@@ -582,15 +582,15 @@ function ThoughtsComposer({
       </div>
 
       {/* ── Sprach-Tabs ──────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 mb-3 flex-shrink-0 border-b border-gray-800 pb-0">
+      <div className="flex gap-1 mb-3 flex-shrink-0 border-b border-[var(--color-border)] pb-0">
         {TAB_CONFIG.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
               activeTab === tab.id
-                ? 'border-violet-500 text-white bg-gray-900'
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+                ? 'border-[var(--color-accent)] text-[var(--color-text-1)] bg-[var(--color-surface-1)]'
+                : 'border-transparent text-[var(--color-text-3)] hover:text-[var(--color-text-2)] hover:bg-[var(--color-surface-2)]/50'
             }`}
           >
             <span>{tab.flag}</span>
@@ -600,7 +600,7 @@ function ThoughtsComposer({
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
             )}
             {!tab.required && !tabHasContent(tab.id) && (
-              <span className="text-gray-600 text-xs">optional</span>
+              <span className="text-[var(--color-text-3)] text-xs">optional</span>
             )}
           </button>
         ))}
@@ -622,14 +622,14 @@ function ThoughtsComposer({
             }
           }}
           placeholder={`Titel ${activeTab === 'en' ? '(Pflicht)' : '(optional)'}…`}
-          className={`flex-1 bg-gray-900 border rounded-lg px-3 py-2.5 text-white text-base font-semibold placeholder-gray-600 focus:outline-none focus:border-violet-500 ${
-            activeTab === 'en' && !form.title_en.trim() ? 'border-red-800' : 'border-gray-700'
+          className={`flex-1 bg-[var(--color-surface-1)] border rounded-lg px-3 py-2.5 text-[var(--color-text-1)] text-base font-semibold placeholder-gray-600 focus:outline-none focus:border-[var(--color-accent)] ${
+            activeTab === 'en' && !form.title_en.trim() ? 'border-red-800' : 'border-[var(--color-border-strong)]'
           }`}
         />
         <div className={`flex items-center px-3 rounded-lg text-xs font-medium border flex-shrink-0 ${
           form.status === 'published'
             ? 'bg-green-900/20 text-green-400 border-green-800'
-            : 'bg-gray-800/50 text-gray-500 border-gray-700'
+            : 'bg-[var(--color-surface-2)]/50 text-[var(--color-text-3)] border-[var(--color-border-strong)]'
         }`}>
           {form.status === 'published' ? '● Live' : '○ Entwurf'}
         </div>
@@ -641,20 +641,20 @@ function ThoughtsComposer({
         {/* Editor */}
         <div className="flex flex-col flex-1 min-w-0">
           {/* Toolbar */}
-          <div className="flex flex-wrap gap-0.5 px-1 py-1 bg-gray-900 border border-gray-700 rounded-t-lg border-b-0 flex-shrink-0">
+          <div className="flex flex-wrap gap-0.5 px-1 py-1 bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-t-lg border-b-0 flex-shrink-0">
             <TBtn label="B" action="bold" title="Fett (**text**)" />
             <TBtn label="I" action="italic" title="Kursiv (*text*)" />
-            <span className="w-px h-5 bg-gray-700 mx-1 self-center" />
+            <span className="w-px h-5 bg-[var(--color-surface-3)] mx-1 self-center" />
             <TBtn label="H2" action="h2" title="Überschrift 2" />
             <TBtn label="H3" action="h3" title="Überschrift 3" />
-            <span className="w-px h-5 bg-gray-700 mx-1 self-center" />
+            <span className="w-px h-5 bg-[var(--color-surface-3)] mx-1 self-center" />
             <TBtn label="&ldquo;" action="quote" title="Blockquote" />
             <TBtn label="&bull;" action="ul" title="Aufzählung" />
             <TBtn label="&lt;&gt;" action="code" title="Codeblock" />
-            <span className="w-px h-5 bg-gray-700 mx-1 self-center" />
+            <span className="w-px h-5 bg-[var(--color-surface-3)] mx-1 self-center" />
             <TBtn label="🔗" action="link" title="Link [Text](url)" />
             <TBtn label="🖼" action="image" title="Bild einfügen" />
-            {uploadingInline && <span className="text-xs text-gray-500 self-center ml-2">⟳ Lade Bild…</span>}
+            {uploadingInline && <span className="text-xs text-[var(--color-text-3)] self-center ml-2">⟳ Lade Bild…</span>}
           </div>
           <textarea
             ref={editorRef}
@@ -665,42 +665,42 @@ function ThoughtsComposer({
             onDragOver={e => e.preventDefault()}
             placeholder={`Inhalt auf ${activeTab === 'en' ? 'Englisch (Pflicht)' : activeTab === 'de' ? 'Deutsch (optional)' : 'Arabisch (optional)'}…\n\nTipp: Bilder per Drag&Drop oder Ctrl+V einfügen.`}
             dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
-            className="flex-1 w-full bg-gray-900 border border-gray-700 rounded-b-lg px-4 py-3 text-white text-sm font-mono resize-none focus:outline-none focus:border-violet-500 leading-relaxed"
+            className="flex-1 w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-b-lg px-4 py-3 text-[var(--color-text-1)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--color-accent)] leading-relaxed"
           />
         </div>
 
         {/* Preview */}
         <div className="flex flex-col flex-1 min-w-0">
-          <p className="text-xs text-gray-500 mb-1.5 px-1 font-medium uppercase tracking-widest flex-shrink-0">
+          <p className="text-xs text-[var(--color-text-3)] mb-1.5 px-1 font-medium uppercase tracking-widest flex-shrink-0">
             Vorschau ({activeTab.toUpperCase()})
           </p>
           <div
             dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
-            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-5 py-4 overflow-auto text-sm
-              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:mt-4 [&_h1]:mb-2
-              [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mt-4 [&_h2]:mb-2
-              [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-white [&_h3]:mt-3 [&_h3]:mb-1
-              [&_p]:text-gray-300 [&_p]:mb-3 [&_p]:leading-relaxed
-              [&_ul]:text-gray-300 [&_ul]:pl-5 [&_ul]:mb-3 [&_ul]:list-disc
-              [&_ol]:text-gray-300 [&_ol]:pl-5 [&_ol]:mb-3 [&_ol]:list-decimal
-              [&_li]:mb-1 [&_li]:text-gray-300
-              [&_a]:text-violet-400
-              [&_strong]:text-white [&_strong]:font-semibold
-              [&_em]:italic [&_em]:text-gray-300
-              [&_code]:text-violet-300 [&_code]:bg-gray-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
-              [&_pre]:bg-gray-800 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:mb-3 [&_pre]:overflow-x-auto
+            className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-5 py-4 overflow-auto text-sm
+              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[var(--color-text-1)] [&_h1]:mt-4 [&_h1]:mb-2
+              [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[var(--color-text-1)] [&_h2]:mt-4 [&_h2]:mb-2
+              [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[var(--color-text-1)] [&_h3]:mt-3 [&_h3]:mb-1
+              [&_p]:text-[var(--color-text-2)] [&_p]:mb-3 [&_p]:leading-relaxed
+              [&_ul]:text-[var(--color-text-2)] [&_ul]:pl-5 [&_ul]:mb-3 [&_ul]:list-disc
+              [&_ol]:text-[var(--color-text-2)] [&_ol]:pl-5 [&_ol]:mb-3 [&_ol]:list-decimal
+              [&_li]:mb-1 [&_li]:text-[var(--color-text-2)]
+              [&_a]:text-[var(--color-accent)]
+              [&_strong]:text-[var(--color-text-1)] [&_strong]:font-semibold
+              [&_em]:italic [&_em]:text-[var(--color-text-2)]
+              [&_code]:text-[var(--color-accent)] [&_code]:bg-[var(--color-surface-2)] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+              [&_pre]:bg-[var(--color-surface-2)] [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:mb-3 [&_pre]:overflow-x-auto
               [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0
-              [&_blockquote]:border-l-2 [&_blockquote]:border-violet-600 [&_blockquote]:pl-4 [&_blockquote]:text-gray-400 [&_blockquote]:italic [&_blockquote]:mb-3
+              [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-brand)] [&_blockquote]:pl-4 [&_blockquote]:text-[var(--color-text-2)] [&_blockquote]:italic [&_blockquote]:mb-3
               [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2
-              [&_hr]:border-gray-700 [&_hr]:my-4
-              [&_table]:w-full [&_table]:text-sm [&_th]:text-left [&_th]:text-gray-400 [&_th]:pb-2 [&_td]:text-gray-300 [&_td]:py-1"
+              [&_hr]:border-[var(--color-border-strong)] [&_hr]:my-4
+              [&_table]:w-full [&_table]:text-sm [&_th]:text-left [&_th]:text-[var(--color-text-2)] [&_th]:pb-2 [&_td]:text-[var(--color-text-2)] [&_td]:py-1"
           >
             {String(form[contentKey] ?? '') ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {String(form[contentKey] ?? '')}
               </ReactMarkdown>
             ) : (
-              <p className="text-gray-600 italic">Vorschau erscheint beim Schreiben…</p>
+              <p className="text-[var(--color-text-3)] italic">Vorschau erscheint beim Schreiben…</p>
             )}
           </div>
         </div>
@@ -714,7 +714,7 @@ function ThoughtsComposer({
           onChange={e => setTabField(excerptKey, e.target.value)}
           placeholder={`Auszug auf ${activeTab === 'en' ? 'Englisch' : activeTab === 'de' ? 'Deutsch' : 'Arabisch'} (optional — wird beim Build automatisch generiert)`}
           dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-gray-300 text-sm focus:outline-none focus:border-violet-500 placeholder-gray-600"
+          className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-2)] text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder-gray-600"
         />
       </div>
     </div>
@@ -794,51 +794,53 @@ export default function ThoughtsPage() {
     )
   }
 
+  const draftCount = posts.filter(p => p.status === 'draft').length
+  const liveCount = posts.filter(p => p.status === 'published').length
+
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-0">
         <div>
-          <h2 className="text-2xl font-bold text-white">Thoughts</h2>
-          <p className="text-gray-400 text-sm mt-1">Blog-Posts schreiben, bearbeiten, veröffentlichen — ein Post in EN/DE/AR</p>
+          <h1 className="text-2xl font-bold text-[var(--color-text-1)] tracking-tight">Thoughts</h1>
+          <p className="text-[var(--color-text-2)] text-sm mt-1">Blog-Posts schreiben, bearbeiten, veröffentlichen — ein Post in EN / DE / AR</p>
         </div>
-        <button
-          onClick={() => setComposerForm(emptyForm())}
-          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          + Neuer Post
+        <button onClick={() => setComposerForm(emptyForm())}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-[var(--radius-md)] transition-all hover:scale-[1.02] hover:shadow-[var(--glow-brand-strong)]"
+          style={{ background: 'var(--gradient-aurora)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Neuer Post
         </button>
       </div>
 
-      {/* Filter */}
-      <div className="flex gap-1 mb-5">
-        {(['all', 'draft', 'published'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              filter === f ? 'bg-violet-600/20 text-violet-300 font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            {f === 'all' ? 'Alle' : f === 'draft' ? 'Entwürfe' : 'Live'}
-            <span className="ml-1.5 text-xs text-gray-600">
-              {f === 'all' ? posts.length : posts.filter(p => p.status === f).length}
-            </span>
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-[var(--color-border)] w-fit"
+        style={{ background: 'var(--color-surface-2)' }}>
+        {([['all', `Alle (${posts.length})`], ['draft', `Entwürfe (${draftCount})`], ['published', `Live (${liveCount})`]] as const).map(([f, label]) => (
+          <button key={f} onClick={() => setFilter(f as Filter)}
+            className="px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium transition-all"
+            style={{
+              background: filter === f ? 'var(--color-surface-1)' : 'transparent',
+              color: filter === f ? 'var(--color-text-1)' : 'var(--color-text-3)',
+              boxShadow: filter === f ? '0 1px 3px rgba(0,0,0,.15)' : 'none',
+            }}>
+            {label}
           </button>
         ))}
       </div>
 
       {/* Post List */}
       {loading ? (
-        <div className="text-gray-500 text-sm text-center py-12">Lädt…</div>
+        <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          <span className="text-sm">Lädt Posts…</span>
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-600 border border-dashed border-gray-800 rounded-xl">
-          <p className="text-lg mb-2">
-            {posts.length === 0 ? 'Noch keine Beiträge' : 'Keine Beiträge in dieser Kategorie'}
+        <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[var(--radius-xl)] border border-dashed border-[var(--color-border)]">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--color-text-3)]" style={{color:'var(--color-text-3)'}}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <p className="text-sm text-[var(--color-text-3)]">
+            {posts.length === 0 ? 'Noch keine Posts — klicke „+ Neuer Post" um den ersten zu schreiben.' : 'Keine Posts in dieser Kategorie.'}
           </p>
-          {posts.length === 0 && (
-            <p className="text-sm">Klicke „+ Neuer Post" um den ersten Gedanken zu schreiben.</p>
-          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -847,57 +849,59 @@ export default function ThoughtsPage() {
             const hasDe = Boolean(post.title_de)
             const hasAr = Boolean(post.title_ar)
             return (
-              <div
-                key={post.id}
-                className={`flex items-center gap-3 p-3 bg-gray-900 border rounded-lg group hover:border-gray-700 transition-colors ${
-                  post.status === 'published' ? 'border-gray-800' : 'border-gray-800 opacity-75'
-                }`}
+              <div key={post.id}
+                style={{ background:'var(--color-surface-1)', borderColor:'var(--color-border)' }}
+                className={`group flex items-center gap-3 px-3 py-3 rounded-[var(--radius-lg)] border transition-all duration-150 hover:border-[var(--color-brand)]/30 hover:shadow-[var(--glow-brand)] hover:-translate-y-px ${post.status !== 'published' ? 'opacity-70' : ''}`}
               >
-                {post.cover_image_url ? (
-                  <img src={post.cover_image_url} alt="" className="w-14 h-9 object-cover rounded flex-shrink-0" />
-                ) : (
-                  <div className="w-14 h-9 rounded flex-shrink-0 bg-gradient-to-br from-violet-900 to-purple-800 opacity-50" />
-                )}
+                {/* Cover */}
+                <div className="w-14 h-10 rounded-[var(--radius-md)] overflow-hidden shrink-0">
+                  {post.cover_image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={post.cover_image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full" style={{ background:'var(--gradient-aurora-soft)' }} />
+                  )}
+                </div>
 
+                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
-                    {displayTitle || <span className="text-gray-600 italic">Kein Titel</span>}
+                  <p className="text-[var(--color-text-1)] text-sm font-semibold truncate">
+                    {displayTitle || <span className="text-[var(--color-text-3)] italic font-normal">Kein Titel</span>}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-gray-500 text-xs">{fmtDate(post.published_at ?? post.created_at)}</span>
-                    <span className="text-gray-700">·</span>
-                    {/* Sprach-Badges */}
-                    <span className="text-green-400 text-xs font-medium">EN</span>
-                    {hasDe && <span className="text-gray-400 text-xs">DE</span>}
-                    {hasAr && <span className="text-gray-400 text-xs">AR</span>}
-                    {post.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="text-xs text-violet-400 bg-violet-900/20 px-1.5 py-0.5 rounded-full border border-violet-800/40">
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className="text-[var(--color-text-3)] text-[11px] font-mono">{fmtDate(post.published_at ?? post.created_at)}</span>
+                    <span className="text-[var(--color-border-strong)]">·</span>
+                    <span className="text-[11px] font-semibold" style={{color:'var(--color-success)'}}>EN</span>
+                    {hasDe && <span className="text-[11px] font-medium text-[var(--color-text-2)]">DE</span>}
+                    {hasAr && <span className="text-[11px] font-medium text-[var(--color-text-2)]">AR</span>}
+                    {post.tags.slice(0,3).map(tag => (
+                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                        style={{ background:'rgba(0,229,255,.08)', color:'var(--color-accent)', border:'1px solid rgba(0,229,255,.2)' }}>
                         {tag}
                       </span>
                     ))}
-                    {post.tags.length > 3 && <span className="text-xs text-gray-600">+{post.tags.length - 3}</span>}
+                    {post.tags.length > 3 && <span className="text-[10px] text-[var(--color-text-3)]">+{post.tags.length-3}</span>}
                   </div>
                 </div>
 
-                <span className={`text-xs px-2 py-0.5 rounded border flex-shrink-0 ${
-                  post.status === 'published'
-                    ? 'text-green-400 bg-green-900/20 border-green-800'
-                    : 'text-gray-500 bg-gray-800 border-gray-700'
-                }`}>
+                {/* Status */}
+                <span className="text-[11px] px-2 py-0.5 rounded-full border shrink-0 font-medium"
+                  style={post.status === 'published'
+                    ? { color:'var(--color-success)', background:'rgba(34,197,94,.08)', borderColor:'rgba(34,197,94,.25)' }
+                    : { color:'var(--color-text-3)', background:'var(--color-surface-2)', borderColor:'var(--color-border)' }}>
                   {post.status === 'published' ? '● Live' : '○ Entwurf'}
                 </span>
 
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => setComposerForm(postToForm(post))}
-                    className="text-gray-500 hover:text-white p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-                    title="Bearbeiten"
-                  >✎</button>
-                  <button
-                    onClick={() => deletePost(post)}
-                    className="text-gray-600 hover:text-red-400 p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-                    title="Löschen"
-                  >🗑</button>
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setComposerForm(postToForm(post))} title="Bearbeiten"
+                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={() => deletePost(post)} title="Löschen"
+                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  </button>
                 </div>
               </div>
             )

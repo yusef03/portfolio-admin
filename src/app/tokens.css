@@ -1,0 +1,110 @@
+/* ============================================================================
+ * tokens.css — SPACE Design System
+ *
+ * DIESE DATEI IST DIE EINZIGE WAHRHEIT.
+ * Alle Farben, Radien, Fonts, Gradienten hier ändern → Rest passt sich an.
+ *
+ * Richtung: Apple macOS/iOS Dark — Zinc-Neutrals, Space Gray, Apple Blue
+ * Akzent:   #0A84FF (iOS Blue — einzige Farbe, sparsam einsetzen)
+ * Glow:     subtil white/blue — kein Neon-Effekt
+ * ========================================================================== */
+
+@theme {
+  /* Fonts */
+  --font-sans: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: var(--font-mono), 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  /* Accent — Apple Blue */
+  --color-brand:        #0A84FF;
+  --color-brand-light:  #409CFF;
+  --color-brand-dark:   #0071E3;
+  --color-accent:       #0A84FF;
+  --color-accent-dark:  #0071E3;
+
+  /* Status */
+  --color-success:      #30D158;
+  --color-warning:      #FFD60A;
+  --color-danger:       #FF453A;
+  --color-info:         #64D2FF;
+
+  /* Radius — Apple-like, weich gerundet */
+  --radius-sm:          6px;
+  --radius-md:          10px;
+  --radius-lg:          14px;
+  --radius-xl:          18px;
+  --radius-2xl:         22px;
+}
+
+/* ── Dark Mode (Default) ──────────────────────────────────────────────────────
+   Apple macOS Sequoia / iOS 18 Dark — Zinc-Neutrals, Space Gray
+   ─────────────────────────────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  /* Surfaces — Zinc-Skala, leicht warm */
+  --color-surface-0:     #09090B;
+  --color-surface-1:     #18181B;
+  --color-surface-2:     #27272A;
+  --color-surface-3:     #3F3F46;
+
+  /* Borders */
+  --color-border:        rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --color-text-1:        #FAFAFA;
+  --color-text-2:        #A1A1AA;
+  --color-text-3:        #52525B;
+
+  /* Glassmorphism */
+  --color-glass:         rgba(24, 24, 27, 0.85);
+  --color-glass-border:  rgba(255, 255, 255, 0.09);
+
+  /* Glow — subtil, nicht neon */
+  --glow-brand:          0 0 16px rgba(10, 132, 255, 0.20);
+  --glow-accent:         0 0 16px rgba(10, 132, 255, 0.24);
+  --glow-brand-strong:   0 0 30px rgba(10, 132, 255, 0.30);
+  --glow-white:          0 0 20px rgba(255, 255, 255, 0.06);
+
+  /* Gradient */
+  --gradient-aurora:      linear-gradient(135deg, #0071E3 0%, #0A84FF 60%, #409CFF 100%);
+  --gradient-aurora-soft: linear-gradient(135deg, rgba(10,132,255,0.12) 0%, rgba(64,156,255,0.06) 100%);
+
+  /* Sidebar */
+  --color-sidebar-bg:    #111113;
+  --color-sidebar-border: rgba(255, 255, 255, 0.06);
+
+  color-scheme: dark;
+}
+
+/* ── Light Mode ───────────────────────────────────────────────────────────────
+   Apple macOS Sonoma Light — clean, fast weißes Weiß
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --color-surface-0:     #F5F5F7;
+  --color-surface-1:     #FFFFFF;
+  --color-surface-2:     #F2F2F4;
+  --color-surface-3:     #E8E8EA;
+
+  --color-border:        rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.14);
+
+  --color-text-1:        #1D1D1F;
+  --color-text-2:        #6E6E73;
+  --color-text-3:        #AEAEB2;
+
+  --color-glass:         rgba(255, 255, 255, 0.80);
+  --color-glass-border:  rgba(0, 0, 0, 0.08);
+
+  --glow-brand:          0 0 14px rgba(10, 132, 255, 0.12);
+  --glow-accent:         0 0 14px rgba(10, 132, 255, 0.14);
+  --glow-brand-strong:   0 0 22px rgba(10, 132, 255, 0.20);
+  --glow-white:          0 0 16px rgba(0, 0, 0, 0.05);
+
+  --gradient-aurora:      linear-gradient(135deg, #0071E3 0%, #0A84FF 100%);
+  --gradient-aurora-soft: linear-gradient(135deg, rgba(10,132,255,0.08) 0%, rgba(64,156,255,0.04) 100%);
+
+  --color-sidebar-bg:    #FFFFFF;
+  --color-sidebar-border: rgba(0, 0, 0, 0.07);
+
+  color-scheme: light;
+}

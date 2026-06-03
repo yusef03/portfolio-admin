@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useToast } from '@/components/Toast'
+import { PageHeader, Button, Badge, PageTransition } from '@/components/ui'
+import { Plus, Rocket, Loader2, ScrollText, Pencil, Trash2 } from 'lucide-react'
 import type { ChangelogEntry } from '@/lib/types'
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────
@@ -84,22 +86,22 @@ function ChangelogEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-gray-950 border border-gray-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-        <h3 className="text-white font-bold text-lg mb-5">
+      <div className="bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+        <h3 className="text-[var(--color-text-1)] font-bold text-lg mb-5">
           {isNew ? 'Neuer Release' : 'Release bearbeiten'}
         </h3>
 
         {/* Version + Datum */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
-            <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Version *</label>
+            <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Version *</label>
             <input
               type="text"
               value={form.version}
               onChange={e => set('version', e.target.value)}
               placeholder="v1.4.0"
-              className={`w-full bg-gray-900 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                versionTaken ? 'border-red-600 focus:border-red-500' : 'border-gray-700 focus:border-violet-500'
+              className={`w-full bg-[var(--color-surface-1)] border rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none ${
+                versionTaken ? 'border-red-600 focus:border-red-500' : 'border-[var(--color-border-strong)] focus:border-[var(--color-accent)]'
               }`}
             />
             {versionTaken && (
@@ -107,19 +109,19 @@ function ChangelogEditor({
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Datum</label>
+            <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Datum</label>
             <input
               type="date"
               value={form.date}
               onChange={e => set('date', e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+              className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
         </div>
 
         {/* Kategorie */}
         <div className="mb-4">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-2">Kategorie</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-2">Kategorie</label>
           <div className="flex gap-2">
             {(['feature', 'fix', 'refactor', 'security'] as const).map(c => (
               <button
@@ -127,8 +129,8 @@ function ChangelogEditor({
                 onClick={() => set('category', c)}
                 className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${
                   form.category === c
-                    ? 'border-violet-500 bg-violet-900/30 text-violet-300'
-                    : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-brand)]/10 text-[var(--color-accent)]'
+                    : 'border-[var(--color-border-strong)] text-[var(--color-text-2)] hover:border-[var(--color-border-strong)]'
                 }`}
               >
                 {CATEGORY_META[c].label}
@@ -144,7 +146,7 @@ function ChangelogEditor({
               key={l}
               onClick={() => setLang(l)}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                lang === l ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                lang === l ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]' : 'text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-2)]'
               }`}
             >
               {l.toUpperCase()}
@@ -154,27 +156,27 @@ function ChangelogEditor({
 
         {/* Titel */}
         <div className="mb-3">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Titel</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Titel</label>
           <input
             type="text"
             value={form[titleKey]}
             onChange={e => set(titleKey, e.target.value)}
             placeholder={`Titel auf ${lang.toUpperCase()}…`}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
           />
         </div>
 
         {/* Beschreibung */}
         <div className="mb-4">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">
-            Beschreibung <span className="text-gray-600 normal-case">(was wurde geliefert)</span>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">
+            Beschreibung <span className="text-[var(--color-text-3)] normal-case">(was wurde geliefert)</span>
           </label>
           <textarea
             value={form[descKey]}
             onChange={e => set(descKey, e.target.value)}
             placeholder={`Beschreibung auf ${lang.toUpperCase()}…`}
             rows={3}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 resize-none"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
           />
         </div>
 
@@ -184,11 +186,11 @@ function ChangelogEditor({
           className={`w-full mb-5 flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-colors ${
             form.published
               ? 'border-green-700 bg-green-900/20 text-green-300'
-              : 'border-gray-700 bg-gray-900 text-gray-400'
+              : 'border-[var(--color-border-strong)] bg-[var(--color-surface-1)] text-[var(--color-text-2)]'
           }`}
         >
           <span>{form.published ? '✓ Veröffentlicht (erscheint nach Publish auf der Seite)' : 'Entwurf (noch nicht öffentlich)'}</span>
-          <span className={`w-9 h-5 rounded-full relative transition-colors ${form.published ? 'bg-green-600' : 'bg-gray-700'}`}>
+          <span className={`w-9 h-5 rounded-full relative transition-colors ${form.published ? 'bg-green-600' : 'bg-[var(--color-surface-3)]'}`}>
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.published ? 'left-[18px]' : 'left-0.5'}`} />
           </span>
         </button>
@@ -198,13 +200,13 @@ function ChangelogEditor({
           <button
             onClick={() => canSave && onSave(form)}
             disabled={!canSave}
-            className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] text-[var(--color-text-1)] rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Speichern
           </button>
           <button
             onClick={onCancel}
-            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+            className="flex-1 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-2)] rounded-lg text-sm transition-colors"
           >
             Abbrechen
           </button>
@@ -339,54 +341,40 @@ export default function ChangelogPage() {
     .filter(e => e.id !== editEntry?.id)
     .map(e => e.version)
 
+  const catBadgeVariant: Record<string, 'brand'|'success'|'accent'|'danger'> = { feature:'brand', fix:'success', refactor:'accent', security:'danger' }
+
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Changelog</h2>
-          <p className="text-gray-400 text-sm mt-1">Releases dokumentieren — dreisprachig, mit Versionierung</p>
-        </div>
-        <button
-          onClick={handlePublish}
-          disabled={publishing}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            publishing
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : publishStatus === 'success'
-              ? 'bg-green-900/40 text-green-400 border border-green-700'
-              : publishStatus === 'failure'
-              ? 'bg-red-900/40 text-red-400 border border-red-700'
-              : 'bg-violet-600 hover:bg-violet-700 text-white'
-          }`}
-        >
-          {publishing ? '⟳ Publiziere…' : publishStatus === 'success' ? '✓ Gestartet' : '⤴ Publish'}
-        </button>
-      </div>
+    <PageTransition className="max-w-2xl mx-auto space-y-5">
+      <PageHeader
+        title="Changelog"
+        subtitle="Releases dokumentieren — dreisprachig, mit Versionierung"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" icon={<Plus size={13} />} onClick={() => { setEditEntry({ ...EMPTY_ENTRY }); setIsNewEntry(true) }}>
+              Release
+            </Button>
+            <Button variant="primary" size="sm" loading={publishing} icon={<Rocket size={13} />} onClick={handlePublish}>
+              {publishStatus === 'success' ? '✓ Gestartet' : 'Publish'}
+            </Button>
+          </div>
+        }
+      />
 
       {/* Info */}
-      <div className="mb-5 p-3 bg-blue-900/20 border border-blue-800 rounded-lg text-xs text-blue-300">
-        <strong>Hinweis:</strong> Nur <strong>veröffentlichte</strong> Releases erscheinen nach „Publish" auf der <code>/roadmap</code>-Seite.
-        Entwürfe (z.B. via „→ CL" aus der Roadmap) bleiben verborgen, bis du sie veröffentlichst.
-      </div>
-
-      {/* + Release */}
-      <div className="flex justify-end mb-5">
-        <button
-          onClick={() => { setEditEntry({ ...EMPTY_ENTRY }); setIsNewEntry(true) }}
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors"
-        >
-          + Release
-        </button>
+      <div className="rounded-[var(--radius-md)] border px-3 py-2.5 text-xs"
+        style={{ borderColor:'rgba(0,229,255,.2)', background:'rgba(0,229,255,.04)', color:'var(--color-accent)' }}>
+        Nur <strong>veröffentlichte</strong> Releases erscheinen nach „Publish" auf der öffentlichen <code className="bg-[var(--color-surface-2)] px-1 rounded">/roadmap</code>-Seite. Entwürfe (z.B. via „→ CL") bleiben verborgen bis du sie veröffentlichst.
       </div>
 
       {/* Liste */}
       {loading ? (
-        <div className="text-gray-500 text-sm text-center py-12">Lädt…</div>
+        <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
+          <Loader2 size={18} className="animate-spin" /><span className="text-sm">Lädt…</span>
+        </div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-16 text-gray-600 border border-dashed border-gray-800 rounded-xl">
-          <p className="text-lg mb-2">Noch keine Releases</p>
-          <p className="text-sm">Klicke „+ Release" um den ersten anzulegen.</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[var(--radius-xl)] border border-dashed border-[var(--color-border)]">
+          <ScrollText size={32} strokeWidth={1} className="text-[var(--color-text-3)]" />
+          <p className="text-sm text-[var(--color-text-3)]">Noch keine Releases — klicke „+ Release" um den ersten anzulegen.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -395,54 +383,42 @@ export default function ChangelogPage() {
             return (
               <div
                 key={entry.id}
-                className={`flex items-center gap-3 p-3 bg-gray-900 border rounded-lg group hover:border-gray-700 transition-colors ${
-                  entry.published ? 'border-gray-800' : 'border-gray-800 opacity-70'
-                }`}
+                style={{ background:'var(--color-surface-1)', borderColor: entry.published ? 'var(--color-border)' : 'var(--color-border)' }}
+                className={`group flex items-center gap-3 px-3 py-3 rounded-[var(--radius-lg)] border transition-all duration-150 hover:border-[var(--color-brand)]/30 hover:shadow-[var(--glow-brand)] hover:-translate-y-px ${!entry.published ? 'opacity-60' : ''}`}
               >
                 {/* Version */}
-                <span className="text-white text-sm font-mono font-semibold flex-shrink-0 w-16">{entry.version}</span>
+                <code className="text-[var(--color-text-1)] text-xs font-mono font-bold shrink-0 w-14">{entry.version}</code>
 
                 {/* Titel + Datum */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
-                    {entry.title_de || <span className="text-gray-600 italic">Kein Titel</span>}
+                  <p className="text-[var(--color-text-1)] text-sm font-medium truncate">
+                    {entry.title_de || <span className="text-[var(--color-text-3)] italic">Kein Titel</span>}
                   </p>
-                  <p className="text-gray-500 text-xs mt-0.5">{entry.date}</p>
+                  <p className="text-[var(--color-text-3)] text-[11px] mt-0.5 font-mono">{entry.date}</p>
                 </div>
 
-                {/* Kategorie-Badge */}
-                <span className={`text-xs px-2 py-0.5 rounded-full border flex-shrink-0 ${cat.cls}`}>
-                  {cat.label}
-                </span>
-
-                {/* Published-Toggle */}
-                <button
-                  onClick={() => togglePublished(entry)}
-                  title={entry.published ? 'Veröffentlicht — klicken für Entwurf' : 'Entwurf — klicken zum Veröffentlichen'}
-                  className={`text-xs px-2 py-1 rounded border flex-shrink-0 transition-colors ${
-                    entry.published
-                      ? 'bg-green-900/30 text-green-400 border-green-800 hover:bg-green-900/60'
-                      : 'bg-gray-800 text-gray-500 border-gray-700 hover:text-gray-300'
-                  }`}
-                >
-                  {entry.published ? '● Live' : '○ Entwurf'}
-                </button>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => { setEditEntry(entry); setIsNewEntry(false) }}
-                    className="text-gray-500 hover:text-white p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-                    title="Bearbeiten"
-                  >
-                    ✎
+                {/* Badges */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant={catBadgeVariant[entry.category] ?? 'default'}>{cat.label}</Badge>
+                  <button onClick={() => togglePublished(entry)} title={entry.published ? 'Veröffentlicht' : 'Entwurf'}
+                    className="transition-all">
+                    <Badge variant={entry.published ? 'success' : 'default'} dot>
+                      {entry.published ? 'Live' : 'Entwurf'}
+                    </Badge>
                   </button>
-                  <button
-                    onClick={() => deleteEntry(entry.id)}
-                    className="text-gray-600 hover:text-red-400 p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-                    title="Löschen"
+                </div>
+
+                {/* Actions — show on hover */}
+                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => { setEditEntry(entry); setIsNewEntry(false) }}
+                    title="Bearbeiten"
+                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors"
                   >
-                    🗑
+                    <Pencil size={13} strokeWidth={1.75} />
+                  </button>
+                  <button onClick={() => deleteEntry(entry.id)} title="Löschen"
+                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors">
+                    <Trash2 size={13} strokeWidth={1.75} />
                   </button>
                 </div>
               </div>
@@ -461,6 +437,6 @@ export default function ChangelogPage() {
           onCancel={() => { setEditEntry(null); setIsNewEntry(false) }}
         />
       )}
-    </div>
+    </PageTransition>
   )
 }

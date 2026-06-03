@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { PageHeader, Button, Select, Badge, PageTransition } from '@/components/ui'
+import { Rocket, Plus, Loader2, MapPinned } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -62,8 +64,8 @@ const EMPTY_ENTRY: Omit<RoadmapEntry, 'id' | 'created_at' | 'updated_at'> = {
 }
 
 const STATUS_LABELS = {
-  planned: { label: 'Geplant', color: 'text-gray-400', dot: 'bg-gray-500' },
-  'in-progress': { label: 'In Arbeit', color: 'text-violet-400', dot: 'bg-violet-500 animate-pulse' },
+  planned: { label: 'Geplant', color: 'text-[var(--color-text-2)]', dot: 'bg-gray-500' },
+  'in-progress': { label: 'In Arbeit', color: 'text-[var(--color-accent)]', dot: 'bg-violet-500 animate-pulse' },
   completed: { label: 'Fertig', color: 'text-green-400', dot: 'bg-green-500' },
 }
 
@@ -96,62 +98,52 @@ function SortableRow({
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-800 rounded-lg group hover:border-gray-700 transition-colors"
+      style={{ ...style, background: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
+      className="group flex items-center gap-2.5 px-3 py-3 rounded-[var(--radius-lg)] border transition-all duration-150 hover:border-[var(--color-brand)]/30 hover:shadow-[var(--glow-brand)] hover:-translate-y-px"
     >
       {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing px-1 text-lg leading-none select-none"
+      <button {...attributes} {...listeners}
+        className="text-[var(--color-border-strong)] hover:text-[var(--color-text-3)] cursor-grab active:cursor-grabbing shrink-0 touch-none p-0.5"
         title="Ziehen zum Sortieren"
       >
-        ⠿
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><circle cx="4" cy="3" r="1.2"/><circle cx="10" cy="3" r="1.2"/><circle cx="4" cy="7" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="4" cy="11" r="1.2"/><circle cx="10" cy="11" r="1.2"/></svg>
       </button>
 
       {/* Status dot */}
-      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${st.dot}`} />
+      <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot} ${entry.status === 'in-progress' ? 'animate-pulse' : ''}`} />
 
       {/* Titel */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{entry.title_de || <span className="text-gray-600 italic">Kein Titel</span>}</p>
-        {entry.phase_label_de && (
-          <p className="text-gray-500 text-xs mt-0.5 truncate">{entry.phase_label_de}</p>
-        )}
-        {entry.description_de && (
-          <p className="text-gray-500 text-xs mt-0.5 truncate">{entry.description_de}</p>
+        <p className="text-[var(--color-text-1)] text-sm font-medium truncate">
+          {entry.title_de || <span className="text-[var(--color-text-3)] italic">Kein Titel</span>}
+        </p>
+        {(entry.phase_label_de || entry.description_de) && (
+          <p className="text-[var(--color-text-3)] text-[11px] mt-0.5 truncate">
+            {entry.phase_label_de}{entry.phase_label_de && entry.description_de ? ' · ' : ''}{entry.description_de}
+          </p>
         )}
       </div>
 
-      {/* Status-Chip */}
-      <span className={`text-xs px-2 py-0.5 rounded-full border border-gray-700 ${st.color} flex-shrink-0`}>
+      {/* Status Badge */}
+      <span className={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 font-medium ${st.color} border-current/20`}>
         {st.label}
       </span>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      {/* Actions — show on hover */}
+      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         {showChangelogBtn && entry.status === 'completed' && (
-          <button
-            onClick={() => onDraftChangelog(entry)}
-            title="Changelog-Entwurf erstellen"
-            className="text-xs px-2 py-1 rounded bg-green-900/30 text-green-400 hover:bg-green-900/60 border border-green-800 transition-colors"
-          >
+          <button onClick={() => onDraftChangelog(entry)} title="Changelog-Entwurf"
+            className="text-[11px] px-2 py-1 rounded-[var(--radius-sm)] font-medium text-[var(--color-success)] bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/20 border border-[var(--color-success)]/20 transition-colors">
             → CL
           </button>
         )}
-        <button
-          onClick={() => onEdit(entry)}
-          className="text-gray-500 hover:text-white p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-          title="Bearbeiten"
-        >
-          ✎
+        <button onClick={() => onEdit(entry)} title="Bearbeiten"
+          className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
-        <button
-          onClick={() => onDelete(entry.id)}
-          className="text-gray-600 hover:text-red-400 p-1.5 rounded hover:bg-gray-800 transition-colors text-sm"
-          title="Löschen"
-        >
-          🗑
+        <button onClick={() => onDelete(entry.id)} title="Löschen"
+          className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </button>
       </div>
     </div>
@@ -185,14 +177,14 @@ function EntryEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-gray-950 border border-gray-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-        <h3 className="text-white font-bold text-lg mb-5">
+      <div className="bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+        <h3 className="text-[var(--color-text-1)] font-bold text-lg mb-5">
           {initial.id ? 'Eintrag bearbeiten' : 'Neuer Eintrag'}
         </h3>
 
         {/* Status */}
         <div className="mb-4">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-2">Status</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-2">Status</label>
           <div className="flex gap-2">
             {(['planned', 'in-progress', 'completed'] as const).map(s => (
               <button
@@ -200,8 +192,8 @@ function EntryEditor({
                 onClick={() => set('status', s)}
                 className={`flex-1 py-1.5 rounded-lg text-sm border transition-colors ${
                   form.status === s
-                    ? 'border-violet-500 bg-violet-900/30 text-violet-300'
-                    : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-brand)]/10 text-[var(--color-accent)]'
+                    : 'border-[var(--color-border-strong)] text-[var(--color-text-2)] hover:border-[var(--color-border-strong)]'
                 }`}
               >
                 {STATUS_LABELS[s].label}
@@ -218,8 +210,8 @@ function EntryEditor({
               onClick={() => setLang(l)}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                 lang === l
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]'
+                  : 'text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-2)]'
               }`}
             >
               {l.toUpperCase()}
@@ -229,41 +221,41 @@ function EntryEditor({
 
         {/* Titel */}
         <div className="mb-3">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Titel</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Titel</label>
           <input
             type="text"
             value={form[titleKey]}
             onChange={e => set(titleKey, e.target.value)}
             placeholder={`Titel auf ${lang.toUpperCase()}…`}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
           />
         </div>
 
         {/* Beschreibung (Warum) */}
         <div className="mb-3">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">
-            Warum / Beschreibung <span className="text-gray-600 normal-case">(optional)</span>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">
+            Warum / Beschreibung <span className="text-[var(--color-text-3)] normal-case">(optional)</span>
           </label>
           <textarea
             value={form[descKey]}
             onChange={e => set(descKey, e.target.value)}
             placeholder={`Das 'Warum' auf ${lang.toUpperCase()}…`}
             rows={2}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 resize-none"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
           />
         </div>
 
         {/* Phasen-Label */}
         <div className="mb-5">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">
-            Phasen-Label <span className="text-gray-600 normal-case">(optional — z.B. &quot;Sprint 1-2&quot;, &quot;v1.0 Ziel&quot;)</span>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">
+            Phasen-Label <span className="text-[var(--color-text-3)] normal-case">(optional — z.B. &quot;Sprint 1-2&quot;, &quot;v1.0 Ziel&quot;)</span>
           </label>
           <input
             type="text"
             value={form[phaseKey]}
             onChange={e => set(phaseKey, e.target.value)}
             placeholder={`Label auf ${lang.toUpperCase()}…`}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
           />
         </div>
 
@@ -271,13 +263,13 @@ function EntryEditor({
         <div className="flex gap-3">
           <button
             onClick={() => onSave(form)}
-            className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] text-[var(--color-text-1)] rounded-lg text-sm font-medium transition-colors"
           >
             Speichern
           </button>
           <button
             onClick={onCancel}
-            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+            className="flex-1 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-2)] rounded-lg text-sm transition-colors"
           >
             Abbrechen
           </button>
@@ -459,75 +451,54 @@ export default function RoadmapPage() {
     : projects.find(p => p.slug === scope)?.title ?? scope
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Roadmaps</h2>
-          <p className="text-gray-400 text-sm mt-1">Verwalte alle Roadmap-Einträge — global und pro Projekt</p>
-        </div>
-        <button
-          onClick={handlePublish}
-          disabled={publishing}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            publishing
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : publishStatus === 'success'
-              ? 'bg-green-900/40 text-green-400 border border-green-700'
-              : publishStatus === 'failure'
-              ? 'bg-red-900/40 text-red-400 border border-red-700'
-              : 'bg-violet-600 hover:bg-violet-700 text-white'
-          }`}
-        >
-          {publishing ? '⟳ Publiziere…' : publishStatus === 'success' ? '✓ Gestartet' : '⤴ Publish'}
-        </button>
-      </div>
+    <PageTransition className="max-w-2xl mx-auto space-y-5">
+      <PageHeader
+        title="Roadmap"
+        subtitle="Roadmap-Einträge verwalten — global und pro Projekt"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" icon={<Plus size={13} />}
+              onClick={() => { setEditEntry({ ...EMPTY_ENTRY }); setIsNewEntry(true) }}>
+              Eintrag
+            </Button>
+            <Button variant="primary" size="sm" loading={publishing} icon={<Rocket size={13} />} onClick={handlePublish}>
+              {publishStatus === 'success' ? '✓ Gestartet' : 'Publish'}
+            </Button>
+          </div>
+        }
+      />
 
       {/* Scope-Auswahl */}
-      <div className="flex items-center gap-3 mb-5">
-        <label className="text-xs text-gray-400 uppercase tracking-widest flex-shrink-0">Scope:</label>
-        <select
-          value={scope}
-          onChange={e => { setScope(e.target.value); setEditEntry(null) }}
-          className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
-        >
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-[var(--color-text-3)] uppercase tracking-wider font-medium shrink-0">Scope</span>
+        <Select value={scope} onChange={e => { setScope(e.target.value); setEditEntry(null) }} className="flex-1">
           <option value="portfolio">🌐 Portfolio (global)</option>
-          {(enabledSlugs && enabledSlugs.length > 0
-            ? projects.filter(p => enabledSlugs.includes(p.slug))
-            : projects
-          ).map(p => (
-            <option key={p.slug} value={p.slug}>📁 Projekt: {p.title}</option>
-          ))}
-        </select>
-        <button
-          onClick={() => { setEditEntry({ ...EMPTY_ENTRY }); setIsNewEntry(true) }}
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors flex-shrink-0"
-        >
-          + Eintrag
-        </button>
+          {(enabledSlugs && enabledSlugs.length > 0 ? projects.filter(p => enabledSlugs.includes(p.slug)) : projects)
+            .map(p => <option key={p.slug} value={p.slug}>📁 {p.title}</option>)}
+        </Select>
       </div>
 
-      {/* Scope-Info für Portfolio */}
-      {scope === 'portfolio' && (
-        <div className="mb-4 p-3 bg-blue-900/20 border border-blue-800 rounded-lg text-xs text-blue-300">
-          <strong>Portfolio-Scope:</strong> Diese Einträge erscheinen auf der öffentlichen <code>/roadmap</code>-Seite.
-          Erledigte Einträge können per &quot;→ CL&quot; als Changelog-Entwurf übernommen werden.
-        </div>
-      )}
-      {scope !== 'portfolio' && (
-        <div className="mb-4 p-3 bg-gray-900 border border-gray-800 rounded-lg text-xs text-gray-400">
-          <strong>Projekt-Scope:</strong> Diese Einträge erscheinen auf der Projektseite von <strong>{scopeLabel}</strong>.
-          Alle Stati (inkl. ✓ fertig) werden angezeigt — das ist die Projekt-Story.
-        </div>
-      )}
+      {/* Scope-Info */}
+      <div className="rounded-[var(--radius-md)] border px-3 py-2.5 text-xs"
+        style={{
+          borderColor: scope === 'portfolio' ? 'rgba(0,229,255,.2)' : 'var(--color-border)',
+          background: scope === 'portfolio' ? 'rgba(0,229,255,.04)' : 'var(--color-surface-1)',
+          color: scope === 'portfolio' ? 'var(--color-accent)' : 'var(--color-text-2)',
+        }}>
+        {scope === 'portfolio'
+          ? <><strong>Portfolio-Scope:</strong> Einträge erscheinen auf der öffentlichen <code className="bg-[var(--color-surface-2)] px-1 rounded">/roadmap</code>-Seite. Erledigte → per „→ CL" als Changelog-Entwurf.</>
+          : <><strong>Projekt-Scope:</strong> Einträge erscheinen auf der Projektseite von <strong>{scopeLabel}</strong>. Alle Stati werden angezeigt — das ist die Projekt-Story.</>}
+      </div>
 
       {/* Einträge-Liste */}
       {loading ? (
-        <div className="text-gray-500 text-sm text-center py-12">Lädt…</div>
+        <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
+          <Loader2 size={18} className="animate-spin" /><span className="text-sm">Lädt Einträge…</span>
+        </div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-16 text-gray-600 border border-dashed border-gray-800 rounded-xl">
-          <p className="text-lg mb-2">Noch keine Einträge</p>
-          <p className="text-sm">Klicke &quot;+ Eintrag&quot; um den ersten hinzuzufügen.</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[var(--radius-xl)] border border-dashed border-[var(--color-border)]">
+          <MapPinned size={32} strokeWidth={1} className="text-[var(--color-text-3)]" />
+          <p className="text-sm text-[var(--color-text-3)]">Noch keine Einträge — klicke „+ Eintrag" um den ersten hinzuzufügen.</p>
         </div>
       ) : (
         <DndContext
@@ -568,7 +539,7 @@ export default function RoadmapPage() {
       {clDraft && (
         <ChangelogDraftModal entry={clDraft} onClose={() => setClDraft(null)} showToast={showToast} />
       )}
-    </div>
+    </PageTransition>
   )
 }
 
@@ -619,43 +590,43 @@ function ChangelogDraftModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-gray-950 border border-gray-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-        <h3 className="text-white font-bold text-lg mb-1">Changelog-Entwurf erstellen</h3>
-        <p className="text-gray-400 text-xs mb-5">
+      <div className="bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+        <h3 className="text-[var(--color-text-1)] font-bold text-lg mb-1">Changelog-Entwurf erstellen</h3>
+        <p className="text-[var(--color-text-2)] text-xs mb-5">
           Erstellt einen Entwurf im Changelog-Bereich. Du schreibst den finalen Text selbst.
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Version *</label>
+            <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Version *</label>
             <input
               type="text"
               value={version}
               onChange={e => setVersion(e.target.value)}
               placeholder="v2.3.0"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+              className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Datum</label>
+            <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Datum</label>
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+              className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
         </div>
 
         <div className="mb-3">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Kategorie</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Kategorie</label>
           <div className="flex gap-2">
             {(['feature', 'fix', 'refactor', 'security'] as const).map(c => (
               <button
                 key={c}
                 onClick={() => setCategory(c)}
                 className={`flex-1 py-1.5 rounded text-xs border transition-colors capitalize ${
-                  category === c ? 'border-violet-500 bg-violet-900/30 text-violet-300' : 'border-gray-700 text-gray-400'
+                  category === c ? 'border-[var(--color-accent)] bg-[var(--color-brand)]/10 text-[var(--color-accent)]' : 'border-[var(--color-border-strong)] text-[var(--color-text-2)]'
                 }`}
               >
                 {c}
@@ -671,7 +642,7 @@ function ChangelogDraftModal({
               key={l}
               onClick={() => setLang(l)}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                lang === l ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                lang === l ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]' : 'text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-2)]'
               }`}
             >
               {l.toUpperCase()}
@@ -680,21 +651,21 @@ function ChangelogDraftModal({
         </div>
 
         <div className="mb-2">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Titel ({lang.toUpperCase()})</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Titel ({lang.toUpperCase()})</label>
           <input
             type="text"
             value={lang === 'de' ? title_de : lang === 'en' ? title_en : title_ar}
             onChange={e => lang === 'de' ? setTitleDe(e.target.value) : lang === 'en' ? setTitleEn(e.target.value) : setTitleAr(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
           />
         </div>
         <div className="mb-5">
-          <label className="block text-xs text-gray-400 uppercase tracking-widest mb-1">Beschreibung ({lang.toUpperCase()})</label>
+          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Beschreibung ({lang.toUpperCase()})</label>
           <textarea
             value={lang === 'de' ? description_de : lang === 'en' ? description_en : description_ar}
             onChange={e => lang === 'de' ? setDescDe(e.target.value) : lang === 'en' ? setDescEn(e.target.value) : setDescAr(e.target.value)}
             rows={2}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 resize-none"
+            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
           />
         </div>
 
@@ -702,13 +673,13 @@ function ChangelogDraftModal({
           <button
             onClick={save}
             disabled={saving}
-            className="flex-1 py-2 bg-green-700 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex-1 py-2 bg-green-700 hover:bg-green-600 text-[var(--color-text-1)] rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
             {saving ? 'Speichere…' : 'Als Entwurf erstellen'}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+            className="flex-1 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-2)] rounded-lg text-sm transition-colors"
           >
             Abbrechen
           </button>

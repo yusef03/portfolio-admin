@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react'
 
 type ActivityItem = {
   id: string
@@ -14,40 +15,26 @@ type ActivityItem = {
 }
 
 const STATUS_ICON = {
-  success: '✓',
-  warning: '⚠',
-  error: '✗',
-  info: 'ℹ',
-} as const
-
-const STATUS_COLOR = {
-  success: 'text-green-400',
-  warning: 'text-yellow-400',
-  error: 'text-red-400',
-  info: 'text-blue-400',
+  success: <CheckCircle size={12} strokeWidth={2} className="text-[var(--color-success)] shrink-0 mt-0.5" />,
+  warning: <AlertTriangle size={12} strokeWidth={2} className="text-[var(--color-warning)] shrink-0 mt-0.5" />,
+  error:   <XCircle size={12} strokeWidth={2} className="text-[var(--color-danger)] shrink-0 mt-0.5" />,
+  info:    <Info size={12} strokeWidth={2} className="text-[var(--color-accent)] shrink-0 mt-0.5" />,
 } as const
 
 const CATEGORY_LABEL: Record<string, string> = {
-  translations: 'Translations',
-  maintenance: 'Maintenance',
-  projects: 'Projects',
-  bot_memory: 'Bot Memory',
-  media: 'Media',
-  roadmap: 'Roadmap',
-  changelog: 'Changelog',
-  thoughts: 'Thoughts',
-  auth: 'Auth',
-  system: 'System',
+  translations: 'Translations', maintenance: 'Maintenance', projects: 'Projects',
+  bot_memory: 'Bot Memory', media: 'Media', roadmap: 'Roadmap',
+  changelog: 'Changelog', thoughts: 'Thoughts', auth: 'Auth', system: 'System',
 }
 
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime()
   const s = Math.floor(ms / 1000)
-  if (s < 60) return `vor ${s}s`
+  if (s < 60) return `${s}s`
   const m = Math.floor(s / 60)
-  if (m < 60) return `vor ${m}m`
+  if (m < 60) return `${m}m`
   const h = Math.floor(m / 60)
-  if (h < 24) return `vor ${h}h`
+  if (h < 24) return `${h}h`
   return new Date(iso).toLocaleDateString('de-DE')
 }
 
@@ -74,27 +61,37 @@ export function ActivityFeed({ limit = 10, compact = false }: { limit?: number; 
     return () => { cancelled = true; clearInterval(iv) }
   }, [limit])
 
-  if (loading) return <div className="text-gray-500 text-xs">Lädt…</div>
+  if (loading) return (
+    <div className="flex items-center gap-2 text-xs text-[var(--color-text-3)]">
+      <span className="w-3 h-3 rounded-full border border-[var(--color-border)] border-t-[var(--color-accent)] animate-spin" />
+      Lädt…
+    </div>
+  )
 
-  if (items.length === 0) {
-    return (
-      <div className="text-gray-500 text-xs italic">
-        Noch keine Aktivität — sobald du etwas im Admin Panel änderst, erscheint es hier.
-      </div>
-    )
-  }
+  if (items.length === 0) return (
+    <div className="text-xs text-[var(--color-text-3)] italic">
+      Noch keine Aktivität — sobald du etwas im Admin Panel änderst, erscheint es hier.
+    </div>
+  )
 
   return (
-    <div className={compact ? 'space-y-1' : 'space-y-2'}>
+    <div className={compact ? 'space-y-0.5' : 'space-y-1'}>
       {items.map(item => (
-        <div key={item.id} className="flex items-start gap-3 text-xs py-1.5 border-b border-gray-900 last:border-0">
-          <span className="text-[10px] text-gray-500 font-mono w-14 shrink-0 pt-0.5">{timeAgo(item.created_at)}</span>
-          <span className={`shrink-0 font-mono ${STATUS_COLOR[item.status]} pt-0.5`}>{STATUS_ICON[item.status]}</span>
-          <span className="text-gray-500 w-24 shrink-0 truncate pt-0.5">{CATEGORY_LABEL[item.category] ?? item.category}</span>
-          <span className="text-gray-300 flex-1 min-w-0">
+        <div
+          key={item.id}
+          className="flex items-start gap-2.5 text-xs py-2 border-b border-[var(--color-border)] last:border-0"
+        >
+          <span className="font-mono text-[10px] text-[var(--color-text-3)] w-10 shrink-0 pt-0.5">
+            {timeAgo(item.created_at)}
+          </span>
+          {STATUS_ICON[item.status]}
+          <span className="text-[var(--color-text-3)] w-20 shrink-0 truncate pt-0.5 hidden sm:block">
+            {CATEGORY_LABEL[item.category] ?? item.category}
+          </span>
+          <span className="text-[var(--color-text-2)] flex-1 min-w-0">
             {item.message ?? item.action}
             {item.error && (
-              <span className="block text-red-400 text-[10px] mt-0.5 truncate">{item.error}</span>
+              <span className="block text-[var(--color-danger)] text-[10px] mt-0.5 truncate">{item.error}</span>
             )}
           </span>
         </div>

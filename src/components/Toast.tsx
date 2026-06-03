@@ -96,11 +96,13 @@ export function useToast(): ToastContextValue {
 
 // ─── Viewport ─────────────────────────────────────────────────────────────────
 
-const TYPE_STYLES: Record<ToastType, { bg: string; border: string; icon: string; text: string }> = {
-  success: { bg: 'bg-green-950/90', border: 'border-green-700', icon: '✅', text: 'text-green-200' },
-  warning: { bg: 'bg-yellow-950/90', border: 'border-yellow-700', icon: '⚠️', text: 'text-yellow-200' },
-  error:   { bg: 'bg-red-950/90', border: 'border-red-700', icon: '🔴', text: 'text-red-200' },
-  info:    { bg: 'bg-blue-950/90', border: 'border-blue-700', icon: 'ℹ️', text: 'text-blue-200' },
+type ToastMeta = { border: string; iconColor: string; icon: string; labelColor: string }
+
+const TYPE_META: Record<ToastType, ToastMeta> = {
+  success: { border: 'var(--color-success)', iconColor: 'var(--color-success)', icon: '✓', labelColor: 'var(--color-success)' },
+  warning: { border: 'var(--color-warning)', iconColor: 'var(--color-warning)', icon: '⚠', labelColor: 'var(--color-warning)' },
+  error:   { border: 'var(--color-danger)',  iconColor: 'var(--color-danger)',  icon: '✕', labelColor: 'var(--color-danger)' },
+  info:    { border: 'var(--color-accent)',  iconColor: 'var(--color-accent)',  icon: 'ℹ', labelColor: 'var(--color-accent)' },
 }
 
 function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
@@ -114,24 +116,31 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  const s = TYPE_STYLES[toast.type]
+  const m = TYPE_META[toast.type]
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
   return (
     <div
-      className={`pointer-events-auto ${s.bg} ${s.border} ${s.text} backdrop-blur-sm border rounded-xl px-4 py-3 shadow-lg transition-all duration-200 ${mounted ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}
       role="alert"
+      style={{ borderColor: `${m.border}55` }}
+      className={`
+        pointer-events-auto
+        bg-[var(--color-surface-1)] backdrop-blur-md
+        border rounded-[var(--radius-lg)] px-4 py-3 shadow-lg
+        transition-all duration-200
+        ${mounted ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}
+      `}
     >
-      <div className="flex items-start gap-2">
-        <span className="text-base shrink-0">{s.icon}</span>
+      <div className="flex items-start gap-3">
+        <span className="text-sm font-bold shrink-0 mt-0.5" style={{ color: m.iconColor }}>{m.icon}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium break-words">{toast.title}</div>
-          {toast.detail && <div className="text-xs opacity-80 mt-0.5 break-words">{toast.detail}</div>}
+          <div className="text-sm font-medium text-[var(--color-text-1)] break-words">{toast.title}</div>
+          {toast.detail && <div className="text-xs text-[var(--color-text-2)] mt-0.5 break-words">{toast.detail}</div>}
         </div>
         <button
           onClick={onDismiss}
-          className="text-xs opacity-60 hover:opacity-100 shrink-0"
+          className="text-xs text-[var(--color-text-3)] hover:text-[var(--color-text-1)] shrink-0 transition-colors"
           aria-label="Schließen"
         >
           ✕

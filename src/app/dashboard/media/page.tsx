@@ -47,7 +47,7 @@ function FilePreview({ url, type, name }: { url: string; type: string; name: str
       <img
         src={url}
         alt={name}
-        className="w-full h-full object-cover rounded-lg bg-gray-800"
+        className="w-full h-full object-cover rounded-lg bg-[var(--color-surface-2)]"
         loading="lazy"
         onError={e => { (e.target as HTMLImageElement).style.opacity = '0.3' }}
       />
@@ -55,7 +55,7 @@ function FilePreview({ url, type, name }: { url: string; type: string; name: str
   }
   const icons: Record<string, string> = { video: '🎬', document: '📄', other: '📎' }
   return (
-    <div className="w-full h-full flex items-center justify-center text-3xl bg-gray-800 rounded-lg">
+    <div className="w-full h-full flex items-center justify-center text-3xl bg-[var(--color-surface-2)] rounded-lg">
       {icons[type] ?? '📎'}
     </div>
   )
@@ -74,14 +74,14 @@ function UsedInChips({ usedIn, isOrphan }: { usedIn: string[]; isOrphan: boolean
       {usedIn.slice(0, 2).map(ref => (
         <span
           key={ref}
-          className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 truncate max-w-[120px]"
+          className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-2)] truncate max-w-[120px]"
           title={ref}
         >
           {ref.length > 20 ? ref.slice(0, 18) + '…' : ref}
         </span>
       ))}
       {usedIn.length > 2 && (
-        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">
+        <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-3)]">
           +{usedIn.length - 2}
         </span>
       )}
@@ -112,24 +112,24 @@ function EditableAssetCard({
 
   return (
     <div
-      className={`bg-gray-900 border rounded-xl p-3 flex gap-3 transition-colors ${
-        asset.is_orphan ? 'border-yellow-900/40' : 'border-gray-800 hover:border-gray-700'
+      className={`bg-[var(--color-surface-1)] border rounded-xl p-3 flex gap-3 transition-colors ${
+        asset.is_orphan ? 'border-yellow-900/40' : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
       }`}
     >
       <div className="w-16 h-16 shrink-0 relative">
         <FilePreview url={publicUrl} type={type} name={fileName} />
         {replacing && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center rounded-lg">
-            <span className="text-white text-xs">⏳</span>
+            <span className="text-[var(--color-text-1)] text-xs">⏳</span>
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0 space-y-1.5">
-        <p className="text-sm text-white font-medium truncate" title={asset.path}>
+        <p className="text-sm text-[var(--color-text-1)] font-medium truncate" title={asset.path}>
           {fileName}
         </p>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-gray-500">{formatFileSize(asset.size_bytes)}</span>
+          <span className="text-xs text-[var(--color-text-3)]">{formatFileSize(asset.size_bytes)}</span>
           {asset.has_webp && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-green-950 border border-green-800 text-green-400">
               WebP ✓
@@ -140,7 +140,7 @@ function EditableAssetCard({
         <div className="flex gap-1 pt-0.5">
           <button
             onClick={copyUrl}
-            className="px-2 py-1 text-xs rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+            className="px-2 py-1 text-xs rounded bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-3)] transition-colors"
           >
             🔗 URL
           </button>
@@ -148,7 +148,7 @@ function EditableAssetCard({
             <button
               onClick={() => inputRef.current?.click()}
               disabled={replacing}
-              className="px-2 py-1 text-xs rounded bg-purple-950 border border-purple-800 text-purple-300 hover:bg-purple-900 disabled:opacity-50 transition-colors"
+              className="px-2 py-1 text-xs rounded bg-purple-950 border border-purple-800 text-[var(--color-accent)] hover:bg-purple-900 disabled:opacity-50 transition-colors"
             >
               {replacing ? '⏳ …' : '↑ Ersetzen'}
             </button>
@@ -182,30 +182,30 @@ function ReadOnlyAssetCard({ asset }: { asset: MediaManifestEntry }) {
 
   return (
     <div
-      className={`bg-gray-900 border rounded-xl p-3 flex gap-3 transition-colors ${
-        asset.is_orphan ? 'border-yellow-900/40' : 'border-gray-800 hover:border-gray-700'
+      className={`bg-[var(--color-surface-1)] border rounded-xl p-3 flex gap-3 transition-colors ${
+        asset.is_orphan ? 'border-yellow-900/40' : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
       }`}
     >
       <div className="w-16 h-16 shrink-0">
         <FilePreview url={publicUrl} type={type} name={fileName} />
       </div>
       <div className="flex-1 min-w-0 space-y-1.5">
-        <p className="text-sm text-white font-medium truncate" title={asset.path}>
+        <p className="text-sm text-[var(--color-text-1)] font-medium truncate" title={asset.path}>
           {fileName}
         </p>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-gray-500">{formatFileSize(asset.size_bytes)}</span>
+          <span className="text-xs text-[var(--color-text-3)]">{formatFileSize(asset.size_bytes)}</span>
           {asset.has_webp && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-green-950 border border-green-800 text-green-400">
               WebP ✓
             </span>
           )}
-          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">read-only</span>
+          <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-3)]">read-only</span>
         </div>
         <UsedInChips usedIn={asset.used_in} isOrphan={asset.is_orphan} />
         <button
           onClick={copyUrl}
-          className="px-2 py-1 text-xs rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+          className="px-2 py-1 text-xs rounded bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-3)] transition-colors"
         >
           🔗 URL
         </button>
@@ -230,17 +230,17 @@ function MediaSection({
     <section className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-lg">{icon}</span>
-        <h3 className="text-sm font-semibold text-white">{label}</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-text-1)]">{label}</h3>
         {editable ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-950 border border-purple-800 text-purple-300">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-950 border border-purple-800 text-[var(--color-accent)]">
             editierbar
           </span>
         ) : (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-500">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-3)]">
             read-only
           </span>
         )}
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[var(--color-text-3)]">
           {assets.length} Datei{assets.length !== 1 ? 'en' : ''}
         </span>
       </div>
@@ -388,21 +388,21 @@ export default function MediaPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-white">Media</h2>
+          <h2 className="text-2xl font-bold text-[var(--color-text-1)] tracking-tight">Media</h2>
           {manifest && (
-            <p className="text-gray-500 text-xs">
+            <p className="text-[var(--color-text-3)] text-xs">
               Manifest vom {new Date(manifest.generated_at).toLocaleString('de-DE')} · {manifest.summary.count} Assets
             </p>
           )}
           {deployInfo && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-2)]">
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block" />
               <span>Commit erstellt · ~2 Min bis live ·</span>
               <a
                 href={deployInfo.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-400 hover:text-purple-300 underline"
+                className="text-[var(--color-accent)] hover:text-[var(--color-accent)] underline"
               >
                 GitHub →
               </a>
@@ -412,7 +412,7 @@ export default function MediaPage() {
         <button
           onClick={loadManifest}
           disabled={loading}
-          className="px-3 py-1.5 text-xs rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 text-gray-300 transition-colors disabled:opacity-50"
+          className="px-3 py-1.5 text-xs rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text-2)] transition-colors disabled:opacity-50"
         >
           {loading ? '⏳ Lädt…' : '↻ Aktualisieren'}
         </button>
@@ -426,8 +426,8 @@ export default function MediaPage() {
             onClick={() => setFilter(val)}
             className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
               filter === val
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-900 border border-gray-800 text-gray-400 hover:text-white'
+                ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]'
+                : 'bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[var(--color-text-2)] hover:text-[var(--color-text-1)]'
             }`}
           >
             {val === 'all' ? 'Alle' : 'Orphans'}
@@ -442,20 +442,20 @@ export default function MediaPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="text-gray-500 text-sm py-12 text-center">Medien werden geladen…</div>
+        <div className="text-[var(--color-text-3)] text-sm py-12 text-center">Medien werden geladen…</div>
       )}
 
       {/* Manifest Error */}
       {!loading && manifestError && (
-        <section className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-2">
+        <section className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-6 space-y-2">
           <div className="flex items-center gap-2 text-yellow-400">
             <span>⚠️</span>
             <h3 className="text-sm font-semibold">Repo-Assets nicht verfügbar</h3>
           </div>
-          <p className="text-xs text-gray-400">{manifestError}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--color-text-2)]">{manifestError}</p>
+          <p className="text-xs text-[var(--color-text-3)]">
             Lokal ausführen:{' '}
-            <code className="bg-gray-800 px-1.5 py-0.5 rounded text-purple-300">
+            <code className="bg-[var(--color-surface-2)] px-1.5 py-0.5 rounded text-[var(--color-accent)]">
               node scripts/build-media-manifest.mjs
             </code>
           </p>

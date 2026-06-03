@@ -1,0 +1,118 @@
+/* ============================================================================
+ * tokens.css — AURORA Design System
+ *
+ * DIESE DATEI IST DIE EINZIGE WAHRHEIT.
+ * Alle Farben, Radien, Fonts, Gradienten hier ändern → Rest passt sich an.
+ *
+ * Marke:    Purple #9D00FF  (Brand-Wurzel)
+ * Akzent:   Cyan   #00E5FF  (AURORA-Signatur, aktiver/interaktiver Zustand)
+ * Gradient: Purple → Cyan  (sparsam einsetzen: primäre Buttons, aktive Nav, Headlines)
+ * ========================================================================== */
+
+/* ── Tailwind v4 @theme ─────────────────────────────────────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
+  --font-mono: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Brand & Accent */
+  --color-brand:         #9D00FF;
+  --color-brand-light:   #CE80FF;
+  --color-brand-dark:    #6200A3;
+  --color-accent:        #00E5FF;
+  --color-accent-dark:   #00B8CC;
+
+  /* Status */
+  --color-success:       #22C55E;
+  --color-warning:       #F59E0B;
+  --color-danger:        #EF4444;
+  --color-info:          #00E5FF;
+
+  /* Radius */
+  --radius-sm:           8px;
+  --radius-md:           12px;
+  --radius-lg:           16px;
+  --radius-xl:           20px;
+  --radius-2xl:          28px;
+}
+
+/* ── Light Mode (Default) ─────────────────────────────────────────────────
+   Aktiviert wenn: data-theme="light" am <html> (oder kein data-theme)
+   ─────────────────────────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  /* Surfaces */
+  --color-surface-0:     #F4F4F8;   /* App-Hintergrund */
+  --color-surface-1:     #FFFFFF;   /* Karten, Sidebar */
+  --color-surface-2:     #EAEAF0;   /* erhöhte Flächen, Inputs, Hover */
+  --color-surface-3:     #E0E0E8;   /* tiefes Hover, aktive States */
+
+  /* Borders */
+  --color-border:        rgba(10, 10, 20, 0.10);
+  --color-border-strong: rgba(10, 10, 20, 0.18);
+
+  /* Text */
+  --color-text-1:        #0A0A12;   /* Headlines, primärer Text */
+  --color-text-2:        #55555F;   /* Untertitel, Labels */
+  --color-text-3:        #8888A0;   /* Placeholder, deaktiviert */
+
+  /* Glassmorphism */
+  --color-glass:         rgba(255, 255, 255, 0.70);
+  --color-glass-border:  rgba(255, 255, 255, 0.90);
+
+  /* Brand Glow (reduziert im Light Mode) */
+  --glow-brand:          0 0 20px rgba(157, 0, 255, 0.15);
+  --glow-accent:         0 0 20px rgba(0, 229, 255, 0.15);
+  --glow-brand-strong:   0 0 32px rgba(157, 0, 255, 0.25);
+
+  /* Gradient */
+  --gradient-aurora:     linear-gradient(135deg, #9D00FF 0%, #00E5FF 100%);
+  --gradient-aurora-soft: linear-gradient(135deg, rgba(157,0,255,0.12) 0%, rgba(0,229,255,0.12) 100%);
+
+  /* Sidebar */
+  --color-sidebar-bg:    #FFFFFF;
+  --color-sidebar-border: rgba(10, 10, 20, 0.08);
+
+  /* Scrollbar */
+  color-scheme: light;
+}
+
+/* ── Dark Mode ────────────────────────────────────────────────────────────
+   Aktiviert wenn: data-theme="dark" am <html>
+   ─────────────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* Surfaces */
+  --color-surface-0:     #0A0A0A;   /* App-Hintergrund (Marken-Schwarz) */
+  --color-surface-1:     #121218;   /* Karten, Sidebar */
+  --color-surface-2:     #1A1A24;   /* erhöhte Flächen, Inputs, Hover */
+  --color-surface-3:     #22222E;   /* tiefes Hover, aktive States */
+
+  /* Borders */
+  --color-border:        rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --color-text-1:        #F0F0F8;
+  --color-text-2:        #9090A8;
+  --color-text-3:        #55556A;
+
+  /* Glassmorphism */
+  --color-glass:         rgba(18, 18, 24, 0.80);
+  --color-glass-border:  rgba(255, 255, 255, 0.08);
+
+  /* Brand Glow (stärker im Dark Mode) */
+  --glow-brand:          0 0 24px rgba(157, 0, 255, 0.30);
+  --glow-accent:         0 0 24px rgba(0, 229, 255, 0.25);
+  --glow-brand-strong:   0 0 40px rgba(157, 0, 255, 0.45);
+
+  /* Gradient — identisch */
+  --gradient-aurora:     linear-gradient(135deg, #9D00FF 0%, #00E5FF 100%);
+  --gradient-aurora-soft: linear-gradient(135deg, rgba(157,0,255,0.18) 0%, rgba(0,229,255,0.18) 100%);
+
+  /* Sidebar */
+  --color-sidebar-bg:    #0E0E16;
+  --color-sidebar-border: rgba(255, 255, 255, 0.06);
+
+  /* Scrollbar */
+  color-scheme: dark;
+}

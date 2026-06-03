@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1168" height="700" viewBox="0 0 1168 700" fill="none">
+  <defs>
+    <linearGradient id="ybGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9D00FF"></stop>
+      <stop offset="0.5" stop-color="#6F4BFF"></stop>
+      <stop offset="1" stop-color="#00E5FF"></stop>
+    </linearGradient>
+  </defs>
+  <path fill="url(#ybGrad)" transform="translate(-8 700)" d="M246 0L378 0L378-241L616-700L469-700L321-400L303-400L155-700L8-700L246-241ZM600 0L964 0C1089 0 1176-68 1176-185L1176-195C1176-295 1109-334 1065-346L1065-364C1108-377 1172-416 1172-513L1172-523C1172-632 1088-700 960-700L600-700L600-584L692-584L692-116L600-116ZM824-412L824-580L946-580C1002-580 1040-551 1040-501L1040-491C1040-441 1001-412 946-412ZM824-120L824-292L948-292C1006-292 1044-263 1044-211L1044-201C1044-149 1005-120 948-120Z"></path>
+</svg>
