@@ -2,11 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "admin-panel",
+      "name": "admin",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000,
-      "cwd": "/Users/yusefbach/Projekte/portfolio-admin"
+      "runtimeArgs": ["run", "dev", "--", "-p", "3007"],
+      "port": 3007
     }
   ]
 }

@@ -30,7 +30,12 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
   const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
 
-  if (!user && isDashboardRoute) {
+  // Dev-only Preview-Bypass: erlaubt lokales Ansehen des Dashboards ohne Login.
+  // Greift NUR im lokalen Dev-Server (NODE_ENV=development) — auf Vercel/Production
+  // ist NODE_ENV=production, dort bleibt der Auth-Gate vollständig aktiv.
+  const isDevPreview = process.env.NODE_ENV === "development";
+
+  if (!user && isDashboardRoute && !isDevPreview) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

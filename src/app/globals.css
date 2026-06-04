@@ -8,6 +8,10 @@ body {
   transition: background 0.25s ease, color 0.25s ease;
 }
 
+/* Scrollbar ausblenden (mobile Filter-Leisten etc.) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* ── Bot Memory Markdown Preview ─────────────────────────────────────────── */
 .prose-bot h1, .prose-bot h2, .prose-bot h3 {
   color: var(--color-text-1);

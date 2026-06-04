@@ -4,7 +4,26 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { useToast } from '@/components/Toast'
+import { Button, Card, Input, Textarea, Field, LangTabs, Segmented, Switch, PageTransition } from '@/components/ui'
+import { ArrowLeft, Save, Upload, X, Trash2, Plus, Loader2, ImageIcon, Star } from 'lucide-react'
 import type { Project, ProjectFeature, ProjectStatus } from '@/lib/types'
+
+// ─── Section wrapper ───────────────────────────────────────────────────────────
+
+function Section({ title, hint, right, children }: { title: string; hint?: string; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-3)]">{title}</h3>
+          {hint && <p className="text-[11px] text-[var(--color-text-3)] mt-0.5 normal-case">{hint}</p>}
+        </div>
+        {right}
+      </div>
+      {children}
+    </Card>
+  )
+}
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────
 
@@ -56,72 +75,38 @@ function emptyProject(): Omit<Project, 'id' | 'created_at' | 'updated_at'> {
   }
 }
 
-// ─── Lang Tabs ────────────────────────────────────────────────────────────────
-
 type Lang = 'de' | 'en' | 'ar'
-
-function LangTabs({ active, onChange }: { active: Lang; onChange: (l: Lang) => void }) {
-  return (
-    <div className="flex border border-[var(--color-border-strong)] rounded-lg overflow-hidden w-fit">
-      {(['de', 'en', 'ar'] as Lang[]).map(l => (
-        <button
-          key={l}
-          onClick={() => onChange(l)}
-          className={`px-3 py-1 text-xs font-medium transition-colors ${
-            active === l ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]' : 'bg-[var(--color-surface-1)] text-[var(--color-text-2)] hover:text-[var(--color-text-1)]'
-          }`}
-        >
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 // ─── Badge Chip Input ─────────────────────────────────────────────────────────
 
 function BadgeInput({ badges, onChange }: { badges: string[]; onChange: (b: string[]) => void }) {
   const [input, setInput] = useState('')
-
   const add = () => {
     const val = input.trim()
-    if (val && !badges.includes(val)) {
-      onChange([...badges, val])
-    }
+    if (val && !badges.includes(val)) onChange([...badges, val])
     setInput('')
   }
-
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {badges.map(b => (
-          <span key={b} className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border-strong)] text-[var(--color-text-2)]">
-            {b}
-            <button
-              onClick={() => onChange(badges.filter(x => x !== b))}
-              className="text-[var(--color-text-3)] hover:text-red-400 transition-colors"
-              aria-label={`${b} entfernen`}
-            >
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {badges.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {badges.map(b => (
+            <span key={b} className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 text-xs rounded-full font-medium"
+              style={{ background: 'rgba(10,132,255,0.1)', color: 'var(--color-brand)', border: '1px solid rgba(10,132,255,0.2)' }}>
+              {b}
+              <button onClick={() => onChange(badges.filter(x => x !== b))}
+                className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)] transition-colors" aria-label={`${b} entfernen`}>
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
+        <Input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
-          placeholder="Badge hinzufügen (Enter)"
-          className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-        />
-        <button
-          onClick={add}
-          className="px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-3)] transition-colors"
-        >
-          +
-        </button>
+          placeholder="Badge tippen + Enter…" className="flex-1" />
+        <Button variant="secondary" size="md" icon={<Plus size={14} />} onClick={add}>Add</Button>
       </div>
     </div>
   )
@@ -133,50 +118,26 @@ function FeatureList({ features, onChange }: { features: ProjectFeature[]; onCha
   const update = (index: number, lang: Lang, value: string) => {
     onChange(features.map((f, i) => i === index ? { ...f, [lang]: value } : f))
   }
-
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {features.map((f, i) => (
-        <div key={i} className="flex gap-2 items-start">
-          <span className="text-[var(--color-text-3)] text-xs pt-2 w-4 shrink-0">{i + 1}.</span>
+        <div key={i} className="flex gap-2.5 items-start rounded-[12px] border p-2.5" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-0)' }}>
+          <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-semibold shrink-0 mt-0.5"
+            style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-3)' }}>{i + 1}</span>
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input
-              type="text"
-              value={f.de}
-              onChange={e => update(i, 'de', e.target.value)}
-              placeholder="DE"
-              className="px-2 py-1.5 text-xs rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-            <input
-              type="text"
-              value={f.en}
-              onChange={e => update(i, 'en', e.target.value)}
-              placeholder="EN"
-              className="px-2 py-1.5 text-xs rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-            <input
-              type="text"
-              value={f.ar}
-              onChange={e => update(i, 'ar', e.target.value)}
-              placeholder="AR"
-              dir="rtl"
-              className="px-2 py-1.5 text-xs rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
+            <Input value={f.de} onChange={e => update(i, 'de', e.target.value)} placeholder="DE" className="text-xs" />
+            <Input value={f.en} onChange={e => update(i, 'en', e.target.value)} placeholder="EN" className="text-xs" />
+            <Input value={f.ar} onChange={e => update(i, 'ar', e.target.value)} placeholder="AR" dir="rtl" className="text-xs" />
           </div>
-          <button
-            onClick={() => onChange(features.filter((_, idx) => idx !== i))}
-            className="text-[var(--color-text-3)] hover:text-red-400 transition-colors pt-1.5 shrink-0"
-            aria-label="Feature entfernen"
-          >
-            🗑
+          <button onClick={() => onChange(features.filter((_, idx) => idx !== i))}
+            className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors shrink-0 mt-0.5" aria-label="Feature entfernen">
+            <Trash2 size={13} />
           </button>
         </div>
       ))}
-      <button
-        onClick={() => onChange([...features, { de: '', en: '', ar: '' }])}
-        className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
-      >
-        + Feature hinzufügen
+      <button onClick={() => onChange([...features, { de: '', en: '', ar: '' }])}
+        className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-brand)] hover:opacity-70 transition-opacity pt-1">
+        <Plus size={13} /> Feature hinzufügen
       </button>
     </div>
   )
@@ -225,51 +186,30 @@ function ImageUpload({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-3 items-start">
-        {imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt="Vorschau"
-            className="w-20 h-20 rounded-xl object-cover bg-[var(--color-surface-2)] shrink-0"
-            onError={e => { (e.target as HTMLImageElement).style.opacity = '0.3' }}
-          />
-        )}
-        <div className="flex-1 space-y-2">
-          <input
-            type="text"
-            value={imageUrl}
-            onChange={e => onChange(e.target.value)}
-            placeholder="https://… oder leer lassen"
-            className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500 font-mono"
-          />
+    <div className="space-y-3">
+      <div className="flex gap-4 items-start">
+        <div className="w-24 h-24 rounded-[14px] overflow-hidden shrink-0 flex items-center justify-center border" style={{ background: 'var(--color-surface-0)', borderColor: 'var(--color-border)' }}>
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt="Vorschau" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity = '0.3' }} />
+          ) : (
+            <ImageIcon size={26} strokeWidth={1.4} className="text-[var(--color-text-3)]" />
+          )}
+        </div>
+        <div className="flex-1 space-y-2.5">
+          <Input value={imageUrl} onChange={e => onChange(e.target.value)} placeholder="https://… oder leer lassen" className="font-mono text-xs" />
           <div className="flex gap-2">
-            <button
-              onClick={() => inputRef.current?.click()}
-              disabled={uploading}
-              className="px-3 py-1.5 text-xs rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-3)] transition-colors disabled:opacity-50"
-            >
-              {uploading ? '⏳ Lädt hoch…' : '📤 Hochladen'}
-            </button>
+            <Button variant="secondary" size="sm" loading={uploading} icon={<Upload size={13} />} onClick={() => inputRef.current?.click()}>
+              Hochladen
+            </Button>
             {imageUrl && (
-              <button
-                onClick={() => onChange('')}
-                className="px-3 py-1.5 text-xs rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:text-red-400 transition-colors"
-              >
-                Entfernen
-              </button>
+              <Button variant="ghost" size="sm" icon={<X size={13} />} onClick={() => onChange('')}>Entfernen</Button>
             )}
           </div>
         </div>
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={e => { if (e.target.files?.[0]) upload(e.target.files[0]) }}
-      />
+      <input ref={inputRef} type="file" accept="image/*" className="hidden"
+        onChange={e => { if (e.target.files?.[0]) upload(e.target.files[0]) }} />
     </div>
   )
 }
@@ -389,247 +329,120 @@ export default function ProjectEditorPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   if (loading) {
-    return <div className="text-[var(--color-text-3)] text-sm py-8 text-center">Lädt…</div>
+    return (
+      <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
+        <Loader2 size={18} className="animate-spin" /><span className="text-sm">Lädt Projekt…</span>
+      </div>
+    )
+  }
+
+  const goBack = () => {
+    if (hasChanges && !window.confirm('Änderungen verwerfen?')) return
+    router.push('/dashboard/projects')
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <PageTransition className="max-w-3xl space-y-5 pb-8">
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--color-text-1)] tracking-tight">
-            {isNew ? 'Neues Projekt' : `${form.title || 'Projekt'} bearbeiten`}
-          </h2>
-          {hasChanges && <span className="text-yellow-400 text-xs mt-1 block">● Ungespeicherte Änderungen</span>}
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              if (hasChanges && !window.confirm('Änderungen verwerfen?')) return
-              router.push('/dashboard/projects')
-            }}
-            className="px-4 py-2 text-sm rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-3)] transition-colors"
-          >
-            Abbrechen
-          </button>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="px-4 py-2 text-sm rounded-lg bg-[var(--color-brand)] hover:bg-purple-500 text-[var(--color-text-1)] font-medium disabled:opacity-50 transition-colors"
-          >
-            {saving ? '⏳ Speichert…' : '💾 Speichern'}
-          </button>
+      {/* Sticky Action Bar */}
+      <div className="sticky top-0 z-20 -mx-1 px-1 py-2 backdrop-blur-xl" style={{ background: 'color-mix(in srgb, var(--color-surface-0) 80%, transparent)' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={goBack} className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 border transition-colors hover:bg-[var(--color-surface-2)]" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-2)' }}>
+              <ArrowLeft size={17} />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight text-[var(--color-text-1)] truncate">
+                {isNew ? 'Neues Projekt' : (form.title || 'Projekt')}
+              </h1>
+              {hasChanges && <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-warning)] mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]" />Ungespeicherte Änderungen</span>}
+            </div>
+          </div>
+          <Button variant="primary" size="md" loading={saving} icon={<Save size={14} />} onClick={save}>Speichern</Button>
         </div>
       </div>
 
-      {/* Slug + Titel */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-4">
-        <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Basis</h3>
-
+      {/* Basis */}
+      <Section title="Basis">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">
-              Slug <span className="text-[var(--color-text-3)]">(URL-Identifier)</span>
-            </label>
-            <input
-              type="text"
-              value={form.slug}
-              onChange={e => set('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-              className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] font-mono focus:outline-none focus:border-purple-500"
-            />
-            {slugChanged && (
-              <p className="text-yellow-400 text-xs mt-1">
-                ⚠️ Slug geändert — Subseite ({form.subpage_url}) und Links ggf. manuell anpassen.
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">
-              Titel <span className="text-[var(--color-text-3)]">(Eigenname, kein i18n)</span>
-            </label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={e => set('title', e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] focus:outline-none focus:border-purple-500"
-            />
-          </div>
+          <Field label="Slug" hint="URL-Identifier">
+            <Input value={form.slug} onChange={e => set('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))} className="font-mono" />
+            {slugChanged && <p className="text-[var(--color-warning)] text-[11px] mt-1">Slug geändert — Subseite & Links ggf. manuell anpassen.</p>}
+          </Field>
+          <Field label="Titel" hint="Eigenname, kein i18n">
+            <Input value={form.title} onChange={e => set('title', e.target.value)} />
+          </Field>
         </div>
-      </div>
+      </Section>
 
       {/* Beschreibung */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Beschreibung</h3>
-          <LangTabs active={descLang} onChange={setDescLang} />
-        </div>
-        <textarea
-          key={descLang}
+      <Section title="Beschreibung" right={
+        <LangTabs<Lang> value={descLang} onChange={setDescLang}
+          langs={[{id:'de',label:'DE',done:!!form.description_de},{id:'en',label:'EN',done:!!form.description_en},{id:'ar',label:'AR',done:!!form.description_ar}]} />
+      }>
+        <Textarea key={descLang}
           value={descLang === 'de' ? form.description_de : descLang === 'en' ? form.description_en : form.description_ar}
-          onChange={e => {
-            if (descLang === 'de') set('description_de', e.target.value)
-            else if (descLang === 'en') set('description_en', e.target.value)
-            else set('description_ar', e.target.value)
-          }}
-          rows={4}
-          dir={descLang === 'ar' ? 'rtl' : 'ltr'}
-          placeholder={`Beschreibung auf ${descLang.toUpperCase()}…`}
-          className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-y"
-        />
-      </div>
+          onChange={e => { if (descLang === 'de') set('description_de', e.target.value); else if (descLang === 'en') set('description_en', e.target.value); else set('description_ar', e.target.value) }}
+          rows={4} dir={descLang === 'ar' ? 'rtl' : 'ltr'} placeholder={`Beschreibung auf ${descLang.toUpperCase()}…`} />
+      </Section>
 
       {/* Badges */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Badges / Tech-Stack</h3>
+      <Section title="Badges / Tech-Stack">
         <BadgeInput badges={form.badges} onChange={v => set('badges', v)} />
-      </div>
+      </Section>
 
       {/* Features */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
-        <div>
-          <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Features</h3>
-          <p className="text-xs text-[var(--color-text-3)] mt-0.5">Hero-Bullets (DE / EN / AR je Zeile)</p>
-        </div>
+      <Section title="Features" hint="Hero-Bullets — DE / EN / AR je Zeile">
         <FeatureList features={form.features} onChange={v => set('features', v)} />
-      </div>
+      </Section>
 
       {/* Status */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Status</h3>
-        <div className="flex gap-4">
-          {(['active', 'in-progress', 'completed'] as ProjectStatus[]).map(s => (
-            <label key={s} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="status"
-                value={s}
-                checked={form.status === s}
-                onChange={() => set('status', s)}
-                className="accent-purple-500"
-              />
-              <span className="text-sm text-[var(--color-text-2)] capitalize">{s}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      <Section title="Status">
+        <Segmented<ProjectStatus>
+          value={form.status} onChange={(s) => set('status', s)}
+          options={[{id:'active',label:'Active'},{id:'in-progress',label:'In Progress'},{id:'completed',label:'Completed'}]}
+        />
+      </Section>
 
       {/* Bild */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Bild</h3>
-        <ImageUpload
-          projectId={projectId ?? 'new'}
-          imageUrl={form.image_url}
-          onChange={v => set('image_url', v)}
-        />
-      </div>
+      <Section title="Bild">
+        <ImageUpload projectId={projectId ?? 'new'} imageUrl={form.image_url} onChange={v => set('image_url', v)} />
+      </Section>
 
       {/* Links */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-4">
-        <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Links</h3>
+      <Section title="Links">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">GitHub-URL</label>
-            <input
-              type="url"
-              value={form.github_url ?? ''}
-              onChange={e => set('github_url', e.target.value || null)}
-              placeholder="https://github.com/…"
-              className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Demo-URL <span className="text-[var(--color-text-3)]">(optional, noch nicht gerendert)</span></label>
-            <input
-              type="url"
-              value={form.demo_url ?? ''}
-              onChange={e => set('demo_url', e.target.value || null)}
-              placeholder="https://…"
-              className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Subseiten-URL <span className="text-[var(--color-text-3)]">(optional)</span></label>
-            <input
-              type="text"
-              value={form.subpage_url ?? ''}
-              onChange={e => set('subpage_url', e.target.value || null)}
-              placeholder="projects/studynexus.html"
-              className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
+          <Field label="GitHub-URL"><Input type="url" value={form.github_url ?? ''} onChange={e => set('github_url', e.target.value || null)} placeholder="https://github.com/…" /></Field>
+          <Field label="Demo-URL" hint="optional"><Input type="url" value={form.demo_url ?? ''} onChange={e => set('demo_url', e.target.value || null)} placeholder="https://…" /></Field>
+          <Field label="Subseiten-URL" hint="optional"><Input value={form.subpage_url ?? ''} onChange={e => set('subpage_url', e.target.value || null)} placeholder="projects/studynexus.html" /></Field>
         </div>
-      </div>
+      </Section>
 
       {/* Meta */}
-      <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-4 space-y-4">
-        <h3 className="text-sm font-medium text-[var(--color-text-2)] uppercase tracking-wider">Meta</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Zeitraum <span className="text-[var(--color-text-3)]">(optional)</span></label>
-            <input
-              type="text"
-              value={form.timeframe ?? ''}
-              onChange={e => set('timeframe', e.target.value || null)}
-              placeholder="04/2026 — laufend"
-              className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Rolle <span className="text-[var(--color-text-3)]">(optional)</span></label>
-            <input
-              type="text"
-              value={form.role ?? ''}
-              onChange={e => set('role', e.target.value || null)}
-              placeholder="Full-Stack Developer"
-              className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Sortierungs-Index</label>
-            <input
-              type="number"
-              value={form.sort_order}
-              onChange={e => set('sort_order', parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-1.5 text-sm rounded-lg bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] text-[var(--color-text-1)] focus:outline-none focus:border-purple-500"
-            />
-          </div>
+      <Section title="Meta">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Zeitraum" hint="optional"><Input value={form.timeframe ?? ''} onChange={e => set('timeframe', e.target.value || null)} placeholder="04/2026 — laufend" /></Field>
+          <Field label="Rolle" hint="optional"><Input value={form.role ?? ''} onChange={e => set('role', e.target.value || null)} placeholder="Full-Stack Developer" /></Field>
+          <Field label="Sortierungs-Index"><Input type="number" value={form.sort_order} onChange={e => set('sort_order', parseInt(e.target.value) || 0)} /></Field>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.is_hero}
-            onChange={e => set('is_hero', e.target.checked)}
-            className="accent-yellow-400"
-          />
-          <span className="text-sm text-[var(--color-text-2)]">Als Hero-Projekt auf der Startseite anzeigen ⭐</span>
-        </label>
-        {form.is_hero && (
-          <p className="text-yellow-400 text-xs">
-            ⚠️ Nur ein Projekt kann gleichzeitig Hero sein. Beim Speichern wird das bisherige Hero automatisch deaktiviert, wenn du &quot;Als Hero setzen&quot; auf der Listenseite nutzt. Hier direkt ändern: auf eigene Verantwortung.
-          </p>
-        )}
-      </div>
+        <div className="flex items-center justify-between rounded-[12px] border px-4 py-3 mt-1"
+          style={{ borderColor: form.is_hero ? 'rgba(255,214,10,.3)' : 'var(--color-border)', background: form.is_hero ? 'rgba(255,214,10,.06)' : 'var(--color-surface-0)' }}>
+          <div className="flex items-center gap-2.5">
+            <Star size={16} className={form.is_hero ? 'text-yellow-400' : 'text-[var(--color-text-3)]'} fill={form.is_hero ? 'currentColor' : 'none'} />
+            <div>
+              <p className="text-[13px] font-medium text-[var(--color-text-1)]">Hero-Projekt</p>
+              <p className="text-[11px] text-[var(--color-text-3)]">Als Showcase auf der Startseite anzeigen</p>
+            </div>
+          </div>
+          <Switch checked={form.is_hero} onChange={(v) => set('is_hero', v)} variant="brand" />
+        </div>
+      </Section>
 
-      {/* Footer Speichern */}
-      <div className="flex justify-end gap-2 pb-8">
-        <button
-          onClick={() => {
-            if (hasChanges && !window.confirm('Änderungen verwerfen?')) return
-            router.push('/dashboard/projects')
-          }}
-          className="px-4 py-2 text-sm rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-3)] transition-colors"
-        >
-          Abbrechen
-        </button>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="px-4 py-2 text-sm rounded-lg bg-[var(--color-brand)] hover:bg-purple-500 text-[var(--color-text-1)] font-medium disabled:opacity-50 transition-colors"
-        >
-          {saving ? '⏳ Speichert…' : '💾 Speichern'}
-        </button>
+      {/* Footer */}
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" size="md" onClick={goBack}>Abbrechen</Button>
+        <Button variant="primary" size="md" loading={saving} icon={<Save size={14} />} onClick={save}>Speichern</Button>
       </div>
-    </div>
+    </PageTransition>
   )
 }

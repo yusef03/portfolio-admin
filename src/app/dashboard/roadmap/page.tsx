@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { PageHeader, Button, Select, Badge, PageTransition } from '@/components/ui'
+import { PageHeader, Button, Select, Badge, PageTransition, Modal, Field, LangTabs, Segmented, Input, Textarea } from '@/components/ui'
 import { Rocket, Plus, Loader2, MapPinned } from 'lucide-react'
 import {
   DndContext,
@@ -65,7 +65,7 @@ const EMPTY_ENTRY: Omit<RoadmapEntry, 'id' | 'created_at' | 'updated_at'> = {
 
 const STATUS_LABELS = {
   planned: { label: 'Geplant', color: 'text-[var(--color-text-2)]', dot: 'bg-gray-500' },
-  'in-progress': { label: 'In Arbeit', color: 'text-[var(--color-accent)]', dot: 'bg-violet-500 animate-pulse' },
+  'in-progress': { label: 'In Arbeit', color: 'text-[var(--color-accent)]', dot: 'bg-[var(--color-brand)] animate-pulse' },
   completed: { label: 'Fertig', color: 'text-green-400', dot: 'bg-green-500' },
 }
 
@@ -94,57 +94,130 @@ function SortableRow({
   }
 
   const st = STATUS_LABELS[entry.status]
+  const accent = entry.status === 'completed' ? 'var(--color-success)' : entry.status === 'in-progress' ? 'var(--color-brand)' : 'var(--color-text-3)'
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{ ...style, background: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
-      className="group flex items-center gap-2.5 px-3 py-3 rounded-[var(--radius-lg)] border transition-all duration-150 hover:border-[var(--color-brand)]/30 hover:shadow-[var(--glow-brand)] hover:-translate-y-px"
-    >
-      {/* Drag handle */}
-      <button {...attributes} {...listeners}
-        className="text-[var(--color-border-strong)] hover:text-[var(--color-text-3)] cursor-grab active:cursor-grabbing shrink-0 touch-none p-0.5"
-        title="Ziehen zum Sortieren"
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><circle cx="4" cy="3" r="1.2"/><circle cx="10" cy="3" r="1.2"/><circle cx="4" cy="7" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="4" cy="11" r="1.2"/><circle cx="10" cy="11" r="1.2"/></svg>
-      </button>
+    <div ref={setNodeRef} style={style} className="group relative flex gap-4">
 
-      {/* Status dot */}
-      <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot} ${entry.status === 'in-progress' ? 'animate-pulse' : ''}`} />
-
-      {/* Titel */}
-      <div className="flex-1 min-w-0">
-        <p className="text-[var(--color-text-1)] text-sm font-medium truncate">
-          {entry.title_de || <span className="text-[var(--color-text-3)] italic">Kein Titel</span>}
-        </p>
-        {(entry.phase_label_de || entry.description_de) && (
-          <p className="text-[var(--color-text-3)] text-[11px] mt-0.5 truncate">
-            {entry.phase_label_de}{entry.phase_label_de && entry.description_de ? ' · ' : ''}{entry.description_de}
-          </p>
-        )}
+      {/* ── Timeline node column ──────────────────────────── */}
+      <div className="relative w-[22px] shrink-0 flex justify-center pt-[18px]">
+        <StatusNode status={entry.status} />
       </div>
 
-      {/* Status Badge */}
-      <span className={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 font-medium ${st.color} border-current/20`}>
-        {st.label}
-      </span>
+      {/* ── Card ──────────────────────────────────────────── */}
+      <div
+        className="flex-1 min-w-0 mb-1 rounded-[14px] border transition-all duration-200 hover:-translate-y-px"
+        style={{ background: 'var(--color-surface-1)', borderColor: 'var(--color-border)', borderLeft: `2px solid ${accent}` }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 10px 30px -14px rgba(0,0,0,.5)'; e.currentTarget.style.borderColor = 'var(--color-border-strong)'; e.currentTarget.style.borderLeftColor = accent }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.borderLeftColor = accent }}
+      >
+        <div className="flex items-start gap-2.5 p-3.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              {entry.phase_label_de && (
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-[5px]"
+                  style={{ background: `color-mix(in srgb, ${accent} 14%, transparent)`, color: accent }}>
+                  {entry.phase_label_de}
+                </span>
+              )}
+              <span className="text-[11px] font-medium" style={{ color: accent }}>{st.label}</span>
+            </div>
+            <p className="text-[var(--color-text-1)] text-[14px] font-semibold mt-1.5 truncate">
+              {entry.title_de || <span className="text-[var(--color-text-3)] italic font-normal">Kein Titel</span>}
+            </p>
+            {entry.description_de && (
+              <p className="text-[var(--color-text-3)] text-[12px] mt-1 line-clamp-2">{entry.description_de}</p>
+            )}
+          </div>
 
-      {/* Actions — show on hover */}
-      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        {showChangelogBtn && entry.status === 'completed' && (
-          <button onClick={() => onDraftChangelog(entry)} title="Changelog-Entwurf"
-            className="text-[11px] px-2 py-1 rounded-[var(--radius-sm)] font-medium text-[var(--color-success)] bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/20 border border-[var(--color-success)]/20 transition-colors">
-            → CL
-          </button>
-        )}
-        <button onClick={() => onEdit(entry)} title="Bearbeiten"
-          className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button onClick={() => onDelete(entry.id)} title="Löschen"
-          className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>
+          {/* Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button {...attributes} {...listeners} title="Ziehen zum Sortieren"
+              className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--color-border-strong)] hover:text-[var(--color-text-2)] cursor-grab active:cursor-grabbing touch-none opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><circle cx="4" cy="3" r="1.2"/><circle cx="10" cy="3" r="1.2"/><circle cx="4" cy="7" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="4" cy="11" r="1.2"/><circle cx="10" cy="11" r="1.2"/></svg>
+            </button>
+            {showChangelogBtn && entry.status === 'completed' && (
+              <button onClick={() => onDraftChangelog(entry)} title="Changelog-Entwurf erstellen"
+                className="text-[11px] px-2 py-1 rounded-[7px] font-medium text-[var(--color-success)] bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/20 border border-[var(--color-success)]/20 transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
+                → CL
+              </button>
+            )}
+            <button onClick={() => onEdit(entry)} title="Bearbeiten"
+              className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button onClick={() => onDelete(entry.id)} title="Löschen"
+              className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Timeline Status Node ──────────────────────────────────────────────────────
+
+function StatusNode({ status }: { status: RoadmapEntry['status'] }) {
+  const halo = '0 0 0 4px var(--color-surface-0)'
+  if (status === 'completed') {
+    return (
+      <span className="relative z-10 w-[18px] h-[18px] rounded-full flex items-center justify-center"
+        style={{ background: 'var(--color-success)', boxShadow: `${halo}, 0 0 12px rgba(48,209,88,.45)` }}>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.65)" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </span>
+    )
+  }
+  if (status === 'in-progress') {
+    return (
+      <span className="relative z-10 w-[18px] h-[18px] rounded-full" style={{ background: 'var(--color-surface-0)', border: '2.5px solid var(--color-brand)', boxShadow: halo }}>
+        <span className="absolute -inset-[3px] rounded-full animate-ping" style={{ border: '2px solid var(--color-brand)', opacity: 0.4 }} />
+      </span>
+    )
+  }
+  return <span className="relative z-10 w-[18px] h-[18px] rounded-full" style={{ background: 'var(--color-surface-0)', border: '2.5px solid var(--color-border-strong)', boxShadow: halo }} />
+}
+
+// ─── Progress Overview ─────────────────────────────────────────────────────────
+
+function ProgressOverview({ entries }: { entries: RoadmapEntry[] }) {
+  const total = entries.length
+  if (total === 0) return null
+  const done = entries.filter(e => e.status === 'completed').length
+  const prog = entries.filter(e => e.status === 'in-progress').length
+  const plan = entries.filter(e => e.status === 'planned').length
+  const pct = Math.round((done / total) * 100)
+
+  const legend = [
+    { label: 'Fertig', n: done, c: 'var(--color-success)' },
+    { label: 'In Arbeit', n: prog, c: 'var(--color-brand)' },
+    { label: 'Geplant', n: plan, c: 'var(--color-text-3)' },
+  ]
+
+  return (
+    <div className="rounded-[16px] border p-5" style={{ background: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}>
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-3.5">
+        <div>
+          <p className="text-[12px] text-[var(--color-text-3)]">Fortschritt</p>
+          <p className="text-[26px] font-semibold tracking-tight text-[var(--color-text-1)] leading-none mt-1">
+            {pct}<span className="text-[15px]">%</span>
+            <span className="text-[13px] text-[var(--color-text-3)] font-normal ml-2">abgeschlossen</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {legend.map(l => (
+            <div key={l.label} className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: l.c }} />
+              <span className="text-[12px] text-[var(--color-text-2)]">{l.label}</span>
+              <span className="text-[12px] font-semibold text-[var(--color-text-1)] tabular-nums">{l.n}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="h-2.5 rounded-full overflow-hidden flex gap-px" style={{ background: 'var(--color-surface-2)' }}>
+        <div className="h-full transition-all duration-500" style={{ width: `${(done / total) * 100}%`, background: 'var(--color-success)' }} />
+        <div className="h-full transition-all duration-500" style={{ width: `${(prog / total) * 100}%`, background: 'var(--color-brand)' }} />
       </div>
     </div>
   )
@@ -175,107 +248,55 @@ function EntryEditor({
   const descKey = `description_${lang}` as 'description_de' | 'description_en' | 'description_ar'
   const phaseKey = `phase_label_${lang}` as 'phase_label_de' | 'phase_label_en' | 'phase_label_ar'
 
+  const langDone = (l: ActiveLang) => Boolean(form[`title_${l}` as 'title_de'])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-        <h3 className="text-[var(--color-text-1)] font-bold text-lg mb-5">
-          {initial.id ? 'Eintrag bearbeiten' : 'Neuer Eintrag'}
-        </h3>
-
+    <Modal open onClose={onCancel} title={initial.id ? 'Eintrag bearbeiten' : 'Neuer Eintrag'} width="lg">
+      <div className="space-y-5">
         {/* Status */}
-        <div className="mb-4">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-2">Status</label>
-          <div className="flex gap-2">
-            {(['planned', 'in-progress', 'completed'] as const).map(s => (
-              <button
-                key={s}
-                onClick={() => set('status', s)}
-                className={`flex-1 py-1.5 rounded-lg text-sm border transition-colors ${
-                  form.status === s
-                    ? 'border-[var(--color-accent)] bg-[var(--color-brand)]/10 text-[var(--color-accent)]'
-                    : 'border-[var(--color-border-strong)] text-[var(--color-text-2)] hover:border-[var(--color-border-strong)]'
-                }`}
-              >
-                {STATUS_LABELS[s].label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <Field label="Status">
+          <Segmented<typeof form.status>
+            value={form.status}
+            onChange={(s) => set('status', s)}
+            options={[
+              { id: 'planned', label: STATUS_LABELS.planned.label },
+              { id: 'in-progress', label: STATUS_LABELS['in-progress'].label },
+              { id: 'completed', label: STATUS_LABELS.completed.label },
+            ]}
+          />
+        </Field>
 
-        {/* Lang Tabs */}
-        <div className="flex gap-1 mb-4">
-          {(['de', 'en', 'ar'] as const).map(l => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                lang === l
-                  ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]'
-                  : 'text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-2)]'
-              }`}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-
-        {/* Titel */}
-        <div className="mb-3">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Titel</label>
-          <input
-            type="text"
-            value={form[titleKey]}
-            onChange={e => set(titleKey, e.target.value)}
-            placeholder={`Titel auf ${lang.toUpperCase()}…`}
-            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
+        {/* Sprache + Felder */}
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-3)]">Inhalt</span>
+          <LangTabs<ActiveLang>
+            value={lang} onChange={setLang}
+            langs={[
+              { id: 'de', label: 'DE', done: langDone('de') },
+              { id: 'en', label: 'EN', done: langDone('en') },
+              { id: 'ar', label: 'AR', done: langDone('ar') },
+            ]}
           />
         </div>
 
-        {/* Beschreibung (Warum) */}
-        <div className="mb-3">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">
-            Warum / Beschreibung <span className="text-[var(--color-text-3)] normal-case">(optional)</span>
-          </label>
-          <textarea
-            value={form[descKey]}
-            onChange={e => set(descKey, e.target.value)}
-            placeholder={`Das 'Warum' auf ${lang.toUpperCase()}…`}
-            rows={2}
-            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
-          />
-        </div>
+        <Field label="Titel">
+          <Input value={form[titleKey]} onChange={e => set(titleKey, e.target.value)} placeholder={`Titel auf ${lang.toUpperCase()}…`} dir={lang === 'ar' ? 'rtl' : 'ltr'} />
+        </Field>
 
-        {/* Phasen-Label */}
-        <div className="mb-5">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">
-            Phasen-Label <span className="text-[var(--color-text-3)] normal-case">(optional — z.B. &quot;Sprint 1-2&quot;, &quot;v1.0 Ziel&quot;)</span>
-          </label>
-          <input
-            type="text"
-            value={form[phaseKey]}
-            onChange={e => set(phaseKey, e.target.value)}
-            placeholder={`Label auf ${lang.toUpperCase()}…`}
-            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
-          />
-        </div>
+        <Field label="Warum / Beschreibung" hint="optional">
+          <Textarea value={form[descKey]} onChange={e => set(descKey, e.target.value)} placeholder={`Das „Warum" auf ${lang.toUpperCase()}…`} rows={2} dir={lang === 'ar' ? 'rtl' : 'ltr'} />
+        </Field>
 
-        {/* Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => onSave(form)}
-            className="flex-1 py-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] text-[var(--color-text-1)] rounded-lg text-sm font-medium transition-colors"
-          >
-            Speichern
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-2)] rounded-lg text-sm transition-colors"
-          >
-            Abbrechen
-          </button>
+        <Field label="Phasen-Label" hint="z.B. Sprint 1-2, v1.0 Ziel">
+          <Input value={form[phaseKey]} onChange={e => set(phaseKey, e.target.value)} placeholder={`Label auf ${lang.toUpperCase()}…`} dir={lang === 'ar' ? 'rtl' : 'ltr'} />
+        </Field>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="secondary" size="md" onClick={onCancel}>Abbrechen</Button>
+          <Button variant="primary" size="md" onClick={() => onSave(form)}>Speichern</Button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -490,7 +511,7 @@ export default function RoadmapPage() {
           : <><strong>Projekt-Scope:</strong> Einträge erscheinen auf der Projektseite von <strong>{scopeLabel}</strong>. Alle Stati werden angezeigt — das ist die Projekt-Story.</>}
       </div>
 
-      {/* Einträge-Liste */}
+      {/* Einträge */}
       {loading ? (
         <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
           <Loader2 size={18} className="animate-spin" /><span className="text-sm">Lädt Einträge…</span>
@@ -501,29 +522,34 @@ export default function RoadmapPage() {
           <p className="text-sm text-[var(--color-text-3)]">Noch keine Einträge — klicke „+ Eintrag" um den ersten hinzuzufügen.</p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={entries.map(e => e.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="space-y-2">
-              {entries.map(entry => (
-                <SortableRow
-                  key={entry.id}
-                  entry={entry}
-                  onEdit={e => { setEditEntry(e); setIsNewEntry(false) }}
-                  onDelete={deleteEntry}
-                  onDraftChangelog={openChangelogDraft}
-                  showChangelogBtn={scope === 'portfolio'}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <>
+          {/* Fortschritts-Übersicht */}
+          <ProgressOverview entries={entries} />
+
+          {/* Vertikale Timeline */}
+          <div className="relative pt-1">
+            {/* Rail line */}
+            <div className="absolute left-[10px] top-6 bottom-6 w-px pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, var(--color-border-strong), var(--color-border) 70%, transparent)' }} />
+
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={entries.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {entries.map(entry => (
+                    <SortableRow
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={e => { setEditEntry(e); setIsNewEntry(false) }}
+                      onDelete={deleteEntry}
+                      onDraftChangelog={openChangelogDraft}
+                      showChangelogBtn={scope === 'portfolio'}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+        </>
       )}
 
       {/* Editor Modal */}
@@ -588,103 +614,50 @@ function ChangelogDraftModal({
     }
   }
 
+  const title = lang === 'de' ? title_de : lang === 'en' ? title_en : title_ar
+  const desc = lang === 'de' ? description_de : lang === 'en' ? description_en : description_ar
+  const setTitle = (v: string) => lang === 'de' ? setTitleDe(v) : lang === 'en' ? setTitleEn(v) : setTitleAr(v)
+  const setDesc = (v: string) => lang === 'de' ? setDescDe(v) : lang === 'en' ? setDescEn(v) : setDescAr(v)
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[var(--color-surface-0)] border border-[var(--color-border-strong)] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-        <h3 className="text-[var(--color-text-1)] font-bold text-lg mb-1">Changelog-Entwurf erstellen</h3>
-        <p className="text-[var(--color-text-2)] text-xs mb-5">
-          Erstellt einen Entwurf im Changelog-Bereich. Du schreibst den finalen Text selbst.
-        </p>
+    <Modal open onClose={onClose} title="Changelog-Entwurf erstellen" width="lg">
+      <div className="space-y-5">
+        <p className="text-[13px] text-[var(--color-text-2)] -mt-1">Erstellt einen Entwurf im Changelog-Bereich. Den finalen Text schreibst du dort.</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Version *</label>
-            <input
-              type="text"
-              value={version}
-              onChange={e => setVersion(e.target.value)}
-              placeholder="v2.3.0"
-              className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Datum</label>
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Version" required>
+            <Input value={version} onChange={e => setVersion(e.target.value)} placeholder="v2.3.0" className="font-mono" />
+          </Field>
+          <Field label="Datum">
+            <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </Field>
         </div>
 
-        <div className="mb-3">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Kategorie</label>
-          <div className="flex gap-2">
-            {(['feature', 'fix', 'refactor', 'security'] as const).map(c => (
-              <button
-                key={c}
-                onClick={() => setCategory(c)}
-                className={`flex-1 py-1.5 rounded text-xs border transition-colors capitalize ${
-                  category === c ? 'border-[var(--color-accent)] bg-[var(--color-brand)]/10 text-[var(--color-accent)]' : 'border-[var(--color-border-strong)] text-[var(--color-text-2)]'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Lang Tabs */}
-        <div className="flex gap-1 mb-4">
-          {(['de', 'en', 'ar'] as const).map(l => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                lang === l ? 'bg-[var(--color-brand)] text-[var(--color-text-1)]' : 'text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-2)]'
-              }`}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-
-        <div className="mb-2">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Titel ({lang.toUpperCase()})</label>
-          <input
-            type="text"
-            value={lang === 'de' ? title_de : lang === 'en' ? title_en : title_ar}
-            onChange={e => lang === 'de' ? setTitleDe(e.target.value) : lang === 'en' ? setTitleEn(e.target.value) : setTitleAr(e.target.value)}
-            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
+        <Field label="Kategorie">
+          <Segmented<'feature'|'fix'|'refactor'|'security'>
+            value={category} onChange={setCategory}
+            options={[{id:'feature',label:'Feature'},{id:'fix',label:'Fix'},{id:'refactor',label:'Refactor'},{id:'security',label:'Security'}]}
           />
-        </div>
-        <div className="mb-5">
-          <label className="block text-xs text-[var(--color-text-2)] uppercase tracking-widest mb-1">Beschreibung ({lang.toUpperCase()})</label>
-          <textarea
-            value={lang === 'de' ? description_de : lang === 'en' ? description_en : description_ar}
-            onChange={e => lang === 'de' ? setDescDe(e.target.value) : lang === 'en' ? setDescEn(e.target.value) : setDescAr(e.target.value)}
-            rows={2}
-            className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-1)] text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
-          />
+        </Field>
+
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-3)]">Inhalt</span>
+          <LangTabs<'de'|'en'|'ar'> value={lang} onChange={setLang}
+            langs={[{id:'de',label:'DE',done:!!title_de},{id:'en',label:'EN',done:!!title_en},{id:'ar',label:'AR',done:!!title_ar}]} />
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={save}
-            disabled={saving}
-            className="flex-1 py-2 bg-green-700 hover:bg-green-600 text-[var(--color-text-1)] rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Speichere…' : 'Als Entwurf erstellen'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-2)] rounded-lg text-sm transition-colors"
-          >
-            Abbrechen
-          </button>
+        <Field label={`Titel (${lang.toUpperCase()})`}>
+          <Input value={title} onChange={e => setTitle(e.target.value)} dir={lang === 'ar' ? 'rtl' : 'ltr'} />
+        </Field>
+        <Field label={`Beschreibung (${lang.toUpperCase()})`}>
+          <Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} dir={lang === 'ar' ? 'rtl' : 'ltr'} />
+        </Field>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="secondary" size="md" onClick={onClose}>Abbrechen</Button>
+          <Button variant="primary" size="md" loading={saving} onClick={save}>Als Entwurf erstellen</Button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

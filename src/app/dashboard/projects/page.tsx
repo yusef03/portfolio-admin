@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useToast } from '@/components/Toast'
 import { PageHeader, Button, Card, Badge, Modal, Input, PageTransition } from '@/components/ui'
@@ -22,69 +22,98 @@ const STATUS_VARIANT: Record<string, 'success'|'brand'|'default'> = { 'active':'
 
 // ─── Sortable Project Card ─────────────────────────────────────────────────────
 
+function GlassBtn({ onClick, title, children, danger, gold }: { onClick: () => void; title: string; children: React.ReactNode; danger?: boolean; gold?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="w-8 h-8 rounded-[9px] flex items-center justify-center transition-all duration-150 hover:scale-105"
+      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: '#fff' }}
+      onMouseEnter={e => { e.currentTarget.style.background = gold ? 'rgba(255,214,10,0.9)' : danger ? 'rgba(255,69,58,0.9)' : 'rgba(10,132,255,0.9)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.45)' }}
+    >
+      {children}
+    </button>
+  )
+}
+
 function SortableProjectCard({ project, onSetHero, onDelete }: { project: Project; onSetHero:(id:string)=>void; onDelete:(id:string,title:string)=>void }) {
   const router = useRouter()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id })
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
+  const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
+  const initial = (project.title || '?').charAt(0).toUpperCase()
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        ...style,
-        background: 'var(--color-surface-1)',
-        borderColor: project.is_hero ? 'rgba(245,158,11,.35)' : 'var(--color-border)',
-        boxShadow: project.is_hero ? '0 0 20px rgba(245,158,11,.08)' : undefined,
-      }}
-      className="group rounded-[var(--radius-lg)] border transition-all duration-200 hover:shadow-[var(--glow-brand)] hover:-translate-y-0.5"
-    >
-      <div className="flex items-center gap-3 p-3">
-        {/* Drag Handle */}
-        <button {...attributes} {...listeners}
-          className="text-[var(--color-border-strong)] hover:text-[var(--color-text-3)] cursor-grab active:cursor-grabbing shrink-0 touch-none p-1"
-        >
-          <GripVertical size={16} strokeWidth={1.75} />
-        </button>
-
-        {/* Image */}
-        <div className="w-12 h-12 rounded-[var(--radius-md)] overflow-hidden shrink-0 bg-[var(--color-surface-2)] flex items-center justify-center">
+    <div ref={setNodeRef} style={style} className="group">
+      <div
+        className="relative overflow-hidden rounded-[18px] border transition-all duration-300 hover:-translate-y-1.5"
+        style={{ background: 'var(--color-surface-1)', borderColor: project.is_hero ? 'rgba(255,214,10,.4)' : 'var(--color-border)' }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = project.is_hero ? '0 18px 44px -18px rgba(255,214,10,.25)' : '0 18px 44px -18px rgba(0,0,0,.55)'; if (!project.is_hero) e.currentTarget.style.borderColor = 'var(--color-border-strong)' }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; if (!project.is_hero) e.currentTarget.style.borderColor = 'var(--color-border)' }}
+      >
+        {/* Cover */}
+        <div className="relative aspect-[16/10] overflow-hidden" style={{ background: 'var(--gradient-aurora-soft)' }}>
           {project.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display='none' }} />
+            <img src={project.image_url} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+              onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
           ) : (
-            <FolderKanban size={18} strokeWidth={1.5} className="text-[var(--color-text-3)]" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[44px] font-bold tracking-tight" style={{ color: 'var(--color-text-3)', opacity: 0.5 }}>{initial}</span>
+            </div>
           )}
-        </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-[var(--color-text-1)] truncate">{project.title}</span>
-            {project.is_hero && <Badge variant="warning">⭐ Hero</Badge>}
-            <Badge variant={STATUS_VARIANT[project.status] ?? 'default'}>{STATUS_LABELS[project.status] ?? project.status}</Badge>
+          {/* top gradient for legibility */}
+          <div className="absolute inset-x-0 top-0 h-20 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)' }} />
+
+          {/* badges top-left */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5">
+            {project.is_hero && (
+              <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(255,214,10,0.95)', color: '#1a1500' }}>
+                <Star size={11} fill="currentColor" /> Hero
+              </span>
+            )}
+            <span className="px-2 py-1 rounded-full text-[11px] font-medium"
+              style={{
+                background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+                color: project.status === 'active' ? '#30D158' : project.status === 'in-progress' ? '#0A84FF' : '#fff',
+              }}>
+              {STATUS_LABELS[project.status] ?? project.status}
+            </span>
           </div>
-          <code className="text-[10px] text-[var(--color-text-3)] font-mono mt-0.5 block">{project.slug}</code>
+
+          {/* actions top-right (hover) */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+            {!project.is_hero && (
+              <GlassBtn gold onClick={() => onSetHero(project.id)} title="Als Hero setzen"><Star size={14} /></GlassBtn>
+            )}
+            <GlassBtn onClick={() => router.push(`/dashboard/projects/${project.id}`)} title="Bearbeiten"><Pencil size={14} /></GlassBtn>
+            <GlassBtn danger onClick={() => onDelete(project.id, project.title)} title="Löschen"><Trash2 size={14} /></GlassBtn>
+          </div>
+
+          {/* drag handle bottom-left (hover) */}
+          <button {...attributes} {...listeners} title="Ziehen zum Sortieren"
+            className="absolute bottom-3 left-3 w-8 h-8 rounded-[9px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200"
+            style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: '#fff' }}>
+            <GripVertical size={15} />
+          </button>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          {!project.is_hero && (
-            <button onClick={() => onSetHero(project.id)} title="Als Hero setzen"
-              className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-            >
-              <Star size={14} strokeWidth={1.75} />
-            </button>
+        {/* Body */}
+        <div className="p-4">
+          <h3 className="font-semibold text-[15px] text-[var(--color-text-1)] truncate">{project.title}</h3>
+          <code className="text-[11px] text-[var(--color-text-3)] font-mono">{project.slug}</code>
+          {project.badges && project.badges.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-3">
+              {project.badges.slice(0, 4).map(b => (
+                <span key={b} className="text-[10px] px-1.5 py-0.5 rounded-[6px] font-medium"
+                  style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-2)' }}>{b}</span>
+              ))}
+              {project.badges.length > 4 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-[6px] text-[var(--color-text-3)]">+{project.badges.length - 4}</span>
+              )}
+            </div>
           )}
-          <button onClick={() => router.push(`/dashboard/projects/${project.id}`)} title="Bearbeiten"
-            className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors"
-          >
-            <Pencil size={14} strokeWidth={1.75} />
-          </button>
-          <button onClick={() => onDelete(project.id, project.title)} title="Löschen"
-            className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
-          >
-            <Trash2 size={14} strokeWidth={1.75} />
-          </button>
         </div>
       </div>
     </div>
@@ -274,22 +303,18 @@ export default function ProjectsPage() {
         }
       />
 
-      {/* Hero Highlight */}
+      {/* Hero hint (slim) */}
       {heroProject && (
-        <div className="rounded-[var(--radius-lg)] border px-4 py-3 flex items-center gap-3"
-          style={{ borderColor:'rgba(245,158,11,.3)', background:'rgba(245,158,11,.06)' }}>
-          <Star size={14} strokeWidth={2} className="text-yellow-400 shrink-0" />
-          <span className="text-sm text-[var(--color-text-2)]">
-            Hero-Projekt: <strong className="text-[var(--color-text-1)]">{heroProject.title}</strong>
-            <span className="text-[var(--color-text-3)] ml-2 text-xs">— wird als Showcase auf index.html angezeigt</span>
-          </span>
+        <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-3)]">
+          <Star size={13} fill="currentColor" className="text-yellow-400 shrink-0" />
+          <span>Hero: <strong className="text-[var(--color-text-2)] font-medium">{heroProject.title}</strong> — Showcase auf index.html</span>
         </div>
       )}
 
-      {/* Project List */}
+      {/* Project Grid */}
       {loading ? (
-        <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
-          <Loader2 size={18} className="animate-spin" /> <span className="text-sm">Lädt Projekte…</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[0,1,2].map(i => <div key={i} className="aspect-[16/10] rounded-[18px] animate-pulse" style={{ background: 'var(--color-surface-2)' }} />)}
         </div>
       ) : projects.length === 0 ? (
         <Card className="py-16 text-center">
@@ -298,11 +323,22 @@ export default function ProjectsPage() {
         </Card>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
+          <SortableContext items={projects.map(p => p.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {projects.map(project => (
                 <SortableProjectCard key={project.id} project={project} onSetHero={handleSetHero} onDelete={(id,title) => setDeleteTarget({id,title})} />
               ))}
+              {/* Add tile */}
+              <button onClick={() => router.push('/dashboard/projects/new')}
+                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-dashed transition-all duration-200 hover:-translate-y-1 min-h-[180px]"
+                style={{ borderColor: 'var(--color-border-strong)', background: 'var(--color-surface-1)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-brand)'; e.currentTarget.style.background = 'var(--color-surface-2)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border-strong)'; e.currentTarget.style.background = 'var(--color-surface-1)' }}>
+                <div className="w-11 h-11 rounded-[13px] flex items-center justify-center transition-colors" style={{ background: 'var(--color-surface-2)' }}>
+                  <Plus size={20} className="text-[var(--color-text-3)] group-hover:text-[var(--color-brand)] transition-colors" />
+                </div>
+                <span className="text-[13px] font-medium text-[var(--color-text-3)] group-hover:text-[var(--color-text-1)] transition-colors">Neues Projekt</span>
+              </button>
             </div>
           </SortableContext>
         </DndContext>

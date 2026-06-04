@@ -4,7 +4,12 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '@/components/Toast'
+import {
+  ArrowLeft, Save, Rocket, Loader2, Clock, X, Upload, ImageIcon as ImageIco,
+  Bold, Italic, Heading2, Heading3, Quote, List, Code2, Link2, Globe, Check, Eye,
+} from 'lucide-react'
 import type { ThoughtPost } from '@/lib/types'
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────
@@ -432,15 +437,11 @@ function ThoughtsComposer({
     markDirty()
   }
 
-  function TBtn({ label, action, title }: { label: string; action: string; title: string }) {
+  function ToolBtn({ icon: Ico, action, title }: { icon: typeof Bold; action: string; title: string }) {
     return (
-      <button
-        type="button"
-        onClick={() => toolbar(action)}
-        title={title}
-        className="px-2 py-1 text-sm text-[var(--color-text-2)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)] rounded transition-colors font-mono"
-      >
-        {label}
+      <button type="button" onClick={() => toolbar(action)} title={title}
+        className="w-8 h-8 rounded-[7px] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-surface-2)] transition-colors">
+        <Ico size={15} strokeWidth={1.9} />
       </button>
     )
   }
@@ -451,271 +452,242 @@ function ThoughtsComposer({
     return String(form[`title_${tab}` as keyof ComposerForm] ?? '').trim().length > 0
   }
 
+  const activeContent = String(form[contentKey] ?? '')
+  const words = activeContent.trim() ? activeContent.trim().split(/\s+/).filter(Boolean).length : 0
+  const readMin = Math.max(1, Math.round(words / 200))
+  const previewTitle = String(form[titleKey] ?? '') || (activeTab !== 'en' ? form.title_en : '')
+  const previewDate = form.published_at ? new Date(form.published_at) : new Date()
+  const fmtPreviewDate = previewDate.toLocaleDateString(activeTab === 'de' ? 'de-DE' : activeTab === 'ar' ? 'ar' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 6.5rem)' }}>
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 mb-4 pb-4 border-b border-[var(--color-border)] flex-shrink-0">
-        <button
-          onClick={onClose}
-          className="text-[var(--color-text-2)] hover:text-[var(--color-text-1)] text-sm transition-colors flex items-center gap-1"
-        >
-          ← Alle Posts
-        </button>
-
-        <div className="flex-1 min-w-0 text-xs">
-          {isSaving && <span className="text-[var(--color-text-3)]">Speichert…</span>}
-          {!isSaving && savedAt && !isDirty && <span className="text-green-500">✓ Gespeichert</span>}
-          {isDirty && !isSaving && <span className="text-yellow-600">● Ungespeichert</span>}
+      {/* ══ Action Bar ══════════════════════════════════════════════════════ */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b flex-shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onClose}
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 border transition-colors hover:bg-[var(--color-surface-2)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-2)' }}>
+            <ArrowLeft size={17} />
+          </button>
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-[var(--color-text-1)] truncate">
+              {form.title_en || form.title_de || (form.id ? 'Beitrag' : 'Neuer Beitrag')}
+            </p>
+            <div className="flex items-center gap-1.5 text-[11px] mt-0.5 whitespace-nowrap overflow-hidden">
+              {isSaving ? <span className="flex items-center gap-1 text-[var(--color-text-3)]"><Loader2 size={10} className="animate-spin" />Speichert…</span>
+                : isDirty ? <span className="flex items-center gap-1 text-[var(--color-warning)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]" />Ungespeichert</span>
+                : savedAt ? <span className="flex items-center gap-1 text-[var(--color-success)]"><Check size={11} />Gespeichert</span>
+                : <span className="text-[var(--color-text-3)]">Entwurf</span>}
+              <span className="text-[var(--color-border-strong)]">·</span>
+              <span className="flex items-center gap-1 text-[var(--color-text-3)]"><Clock size={10} />{readMin} Min<span className="hidden sm:inline"> · {words} Wörter</span></span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => doSave(form)}
-            disabled={isSaving}
-            className="px-3 py-1.5 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-1)] rounded-lg text-xs transition-colors disabled:opacity-50"
-          >
-            Entwurf speichern
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => doSave(form)} disabled={isSaving} title="Entwurf speichern"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-[10px] text-[13px] font-medium transition-all disabled:opacity-50 border"
+            style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}>
+            <Save size={14} /><span className="hidden sm:inline">Entwurf</span>
           </button>
-          <button
-            onClick={handlePublish}
-            disabled={publishing || isSaving || !form.title_en.trim()}
-            className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
-              publishStatus === 'success'
-                ? 'bg-green-900/40 text-green-400 border border-green-700'
-                : publishStatus === 'failure'
-                ? 'bg-red-900/40 text-red-400 border border-red-700'
-                : 'bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] text-[var(--color-text-1)]'
-            }`}
-          >
-            {publishing ? '⟳ Publiziere…' : publishStatus === 'success' ? '✓ Gestartet' : '🚀 Live'}
+          <button onClick={handlePublish} disabled={publishing || isSaving || !form.title_en.trim()} title="Veröffentlichen"
+            className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-[10px] text-[13px] font-semibold text-white transition-all disabled:opacity-50 hover:scale-[1.02]"
+            style={{ background: publishStatus === 'success' ? 'var(--color-success)' : publishStatus === 'failure' ? 'var(--color-danger)' : 'var(--color-brand)' }}>
+            {publishing ? <Loader2 size={14} className="animate-spin" /> : publishStatus === 'success' ? <Check size={14} /> : <Rocket size={14} />}
+            <span className="hidden sm:inline">{publishing ? 'Publiziere…' : publishStatus === 'success' ? 'Gestartet' : 'Veröffentlichen'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── Slug + Tags ──────────────────────────────────────────────────────── */}
-      <div className="flex gap-3 mb-3 flex-shrink-0">
-        {/* Slug */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--color-text-3)] flex-shrink-0">Slug:</span>
-            <input
-              type="text"
-              value={form.slug}
-              readOnly={slugLocked}
-              onChange={e => {
-                const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
-                setSlugManuallyEdited(true)
-                setForm(f => ({ ...f, slug }))
-                formRef.current.slug = slug
-                markDirty()
-              }}
-              placeholder="url-slug (auto aus EN-Titel)"
-              className={`flex-1 bg-[var(--color-surface-1)] border rounded-lg px-2 py-1.5 text-[var(--color-text-2)] text-xs font-mono focus:outline-none min-w-0 ${
-                slugLocked
-                  ? 'border-[var(--color-border)] cursor-not-allowed opacity-60'
-                  : slugTaken
-                  ? 'border-red-600 focus:border-red-500'
-                  : 'border-[var(--color-border-strong)] focus:border-[var(--color-accent)]'
-              }`}
-            />
-          </div>
-          {slugTaken && <p className="text-red-400 text-xs mt-0.5 ml-10">Slug bereits vergeben</p>}
-          {slugLocked && (
-            <p className="text-yellow-600 text-xs mt-0.5 ml-10">⚠ Gesperrt nach Veröffentlichung</p>
-          )}
-        </div>
+      {/* ══ Two Panes ═══════════════════════════════════════════════════════ */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
 
-        {/* Tags */}
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-2 py-1.5 min-h-[34px] focus-within:border-[var(--color-accent)] transition-colors">
-            {form.tags.map(tag => (
-              <span key={tag} className="flex items-center gap-1 bg-violet-900/40 text-[var(--color-accent)] text-xs px-2 py-0.5 rounded-full border border-violet-700/50">
-                {tag}
-                <button onClick={() => removeTag(tag)} className="text-[var(--color-accent)] hover:text-[var(--color-text-1)] leading-none">×</button>
-              </span>
-            ))}
-            <input
-              type="text"
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput) }
-                if (e.key === 'Backspace' && !tagInput && form.tags.length > 0) {
-                  removeTag(form.tags[form.tags.length - 1])
-                }
-              }}
-              placeholder={form.tags.length === 0 ? 'Tags (Enter oder , zum Hinzufügen — sprachneutral)…' : '+ Tag'}
-              className="flex-1 min-w-[100px] bg-transparent text-[var(--color-text-1)] text-xs outline-none placeholder-gray-600"
-            />
-          </div>
-        </div>
-      </div>
+        {/* ── LEFT: Editor ─────────────────────────────────────────────── */}
+        <div className="min-h-0 flex flex-col gap-3 overflow-y-auto pr-1 -mr-1">
 
-      {/* ── Cover Image ──────────────────────────────────────────────────────── */}
-      <div className="mb-3 flex-shrink-0">
-        {form.cover_image_url ? (
-          <div className="flex items-center gap-3">
-            <img src={form.cover_image_url} alt="Cover" className="h-16 w-28 object-cover rounded-lg border border-[var(--color-border-strong)]" />
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[var(--color-text-2)]">Titelbild (sprachneutral)</span>
-              <div className="flex gap-3">
-                <label className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent)] cursor-pointer transition-colors">
+          {/* Meta: Cover */}
+          {form.cover_image_url ? (
+            <div className="relative rounded-[14px] overflow-hidden border" style={{ borderColor: 'var(--color-border)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.cover_image_url} alt="Cover" className="w-full h-28 object-cover" />
+              <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                <label className="px-2.5 py-1 rounded-[8px] text-[11px] font-medium cursor-pointer text-white" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
                   Ersetzen
                   <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
                 </label>
-                <button
-                  onClick={() => { setForm(f => ({ ...f, cover_image_url: null })); formRef.current.cover_image_url = null; markDirty() }}
-                  className="text-xs text-[var(--color-text-3)] hover:text-red-400 transition-colors"
-                >Entfernen</button>
+                <button onClick={() => { setForm(f => ({ ...f, cover_image_url: null })); formRef.current.cover_image_url = null; markDirty() }}
+                  className="w-7 h-7 rounded-[8px] flex items-center justify-center text-white" style={{ background: 'rgba(255,69,58,0.85)', backdropFilter: 'blur(8px)' }}><X size={13} /></button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center gap-1.5 h-24 border border-dashed rounded-[14px] cursor-pointer transition-all text-xs"
+              style={{ borderColor: 'var(--color-border-strong)', color: 'var(--color-text-3)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-brand)'; e.currentTarget.style.color = 'var(--color-brand)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border-strong)'; e.currentTarget.style.color = 'var(--color-text-3)' }}>
+              {uploadingCover ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+              <span>{uploadingCover ? 'Lädt hoch…' : 'Titelbild hochladen (16:9)'}</span>
+              <input type="file" accept="image/*" className="hidden" disabled={uploadingCover} onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
+            </label>
+          )}
+
+          {/* Meta: Slug + Tags */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Slug */}
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-3)] mb-1.5">URL-Slug</label>
+              <div className="flex items-center rounded-[10px] border overflow-hidden" style={{ borderColor: slugTaken ? 'var(--color-danger)' : 'var(--color-border-strong)', background: 'var(--color-surface-2)' }}>
+                <span className="pl-2.5 pr-1 text-[11px] font-mono text-[var(--color-text-3)] shrink-0">/thoughts/</span>
+                <input type="text" value={form.slug} readOnly={slugLocked}
+                  onChange={e => { const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''); setSlugManuallyEdited(true); setForm(f => ({ ...f, slug })); formRef.current.slug = slug; markDirty() }}
+                  placeholder="auto-aus-titel"
+                  className={`flex-1 bg-transparent py-2 pr-2 text-[12px] font-mono text-[var(--color-text-1)] outline-none min-w-0 ${slugLocked ? 'opacity-60 cursor-not-allowed' : ''}`} />
+              </div>
+              {slugTaken && <p className="text-[var(--color-danger)] text-[10px] mt-1">Slug bereits vergeben</p>}
+              {slugLocked && <p className="text-[var(--color-warning)] text-[10px] mt-1">Gesperrt nach Veröffentlichung</p>}
+            </div>
+            {/* Tags */}
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-3)] mb-1.5">Tags</label>
+              <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] border px-2 py-1.5 min-h-[38px]" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border-strong)' }}>
+                {form.tags.map(tag => (
+                  <span key={tag} className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-[6px] font-medium" style={{ background: 'rgba(10,132,255,0.12)', color: 'var(--color-brand)' }}>
+                    #{tag}
+                    <button onClick={() => removeTag(tag)} className="hover:opacity-60"><X size={10} /></button>
+                  </span>
+                ))}
+                <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput) }
+                    if (e.key === 'Backspace' && !tagInput && form.tags.length > 0) removeTag(form.tags[form.tags.length - 1])
+                  }}
+                  placeholder={form.tags.length === 0 ? '#tag + Enter' : '+'}
+                  className="flex-1 min-w-[60px] bg-transparent text-[12px] text-[var(--color-text-1)] outline-none placeholder:text-[var(--color-text-3)]" />
               </div>
             </div>
           </div>
-        ) : (
-          <label className={`flex items-center gap-2 px-3 py-2 border border-dashed rounded-lg cursor-pointer transition-colors text-xs w-fit ${
-            uploadingCover ? 'border-[var(--color-border-strong)] text-[var(--color-text-3)] cursor-wait' : 'border-[var(--color-border-strong)] text-[var(--color-text-3)] hover:border-[var(--color-brand)] hover:text-[var(--color-accent)]'
-          }`}>
-            {uploadingCover ? '⟳ Lade hoch…' : '🖼 Titelbild hochladen (16:9 empfohlen — sprachneutral)'}
-            <input type="file" accept="image/*" className="hidden" disabled={uploadingCover} onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f) }} />
-          </label>
-        )}
-      </div>
 
-      {/* ── Sprach-Tabs ──────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 mb-3 flex-shrink-0 border-b border-[var(--color-border)] pb-0">
-        {TAB_CONFIG.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
-              activeTab === tab.id
-                ? 'border-[var(--color-accent)] text-[var(--color-text-1)] bg-[var(--color-surface-1)]'
-                : 'border-transparent text-[var(--color-text-3)] hover:text-[var(--color-text-2)] hover:bg-[var(--color-surface-2)]/50'
-            }`}
-          >
-            <span>{tab.flag}</span>
-            <span>{tab.label}</span>
-            {tab.required && <span className="text-red-400 text-xs">*</span>}
-            {!tab.required && tabHasContent(tab.id) && (
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-            )}
-            {!tab.required && !tabHasContent(tab.id) && (
-              <span className="text-[var(--color-text-3)] text-xs">optional</span>
-            )}
-          </button>
-        ))}
-      </div>
+          {/* Language tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-[10px] border w-fit" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+            {TAB_CONFIG.map(tab => {
+              const active = activeTab === tab.id
+              const done = tabHasContent(tab.id)
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all"
+                  style={{ background: active ? 'var(--color-surface-1)' : 'transparent', color: active ? 'var(--color-text-1)' : 'var(--color-text-3)', boxShadow: active ? '0 1px 3px rgba(0,0,0,.18)' : 'none' }}>
+                  <span>{tab.flag}</span>{tab.label}
+                  {tab.required && <span className="text-[var(--color-danger)]">*</span>}
+                  {!tab.required && done && <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />}
+                </button>
+              )
+            })}
+          </div>
 
-      {/* ── Titel (aktueller Tab) ─────────────────────────────────────────────── */}
-      <div className="mb-3 flex gap-2 flex-shrink-0">
-        <input
-          type="text"
-          value={String(form[titleKey] ?? '')}
-          onChange={e => {
-            const val = e.target.value
-            setTabField(titleKey, val)
-            // Slug auto-generieren aus EN-Titel (solange nicht manuell bearbeitet und nicht published)
-            if (activeTab === 'en' && !slugManuallyEdited && !isEverPublished) {
-              const slug = generateSlug(val)
-              setForm(f => ({ ...f, slug }))
-              formRef.current.slug = slug
-            }
-          }}
-          placeholder={`Titel ${activeTab === 'en' ? '(Pflicht)' : '(optional)'}…`}
-          className={`flex-1 bg-[var(--color-surface-1)] border rounded-lg px-3 py-2.5 text-[var(--color-text-1)] text-base font-semibold placeholder-gray-600 focus:outline-none focus:border-[var(--color-accent)] ${
-            activeTab === 'en' && !form.title_en.trim() ? 'border-red-800' : 'border-[var(--color-border-strong)]'
-          }`}
-        />
-        <div className={`flex items-center px-3 rounded-lg text-xs font-medium border flex-shrink-0 ${
-          form.status === 'published'
-            ? 'bg-green-900/20 text-green-400 border-green-800'
-            : 'bg-[var(--color-surface-2)]/50 text-[var(--color-text-3)] border-[var(--color-border-strong)]'
-        }`}>
-          {form.status === 'published' ? '● Live' : '○ Entwurf'}
-        </div>
-      </div>
+          {/* Title */}
+          <input type="text" value={String(form[titleKey] ?? '')}
+            onChange={e => {
+              const val = e.target.value
+              setTabField(titleKey, val)
+              if (activeTab === 'en' && !slugManuallyEdited && !isEverPublished) { const slug = generateSlug(val); setForm(f => ({ ...f, slug })); formRef.current.slug = slug }
+            }}
+            placeholder={`Titel ${activeTab === 'en' ? '(Pflicht)' : '(optional)'}…`}
+            dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
+            className="w-full bg-transparent text-[22px] font-bold tracking-tight text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] outline-none border-b pb-2"
+            style={{ borderColor: activeTab === 'en' && !form.title_en.trim() ? 'var(--color-danger)' : 'var(--color-border)' }} />
 
-      {/* ── Editor + Preview ─────────────────────────────────────────────────── */}
-      <div className="flex gap-3 flex-1 min-h-0">
-
-        {/* Editor */}
-        <div className="flex flex-col flex-1 min-w-0">
           {/* Toolbar */}
-          <div className="flex flex-wrap gap-0.5 px-1 py-1 bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-t-lg border-b-0 flex-shrink-0">
-            <TBtn label="B" action="bold" title="Fett (**text**)" />
-            <TBtn label="I" action="italic" title="Kursiv (*text*)" />
-            <span className="w-px h-5 bg-[var(--color-surface-3)] mx-1 self-center" />
-            <TBtn label="H2" action="h2" title="Überschrift 2" />
-            <TBtn label="H3" action="h3" title="Überschrift 3" />
-            <span className="w-px h-5 bg-[var(--color-surface-3)] mx-1 self-center" />
-            <TBtn label="&ldquo;" action="quote" title="Blockquote" />
-            <TBtn label="&bull;" action="ul" title="Aufzählung" />
-            <TBtn label="&lt;&gt;" action="code" title="Codeblock" />
-            <span className="w-px h-5 bg-[var(--color-surface-3)] mx-1 self-center" />
-            <TBtn label="🔗" action="link" title="Link [Text](url)" />
-            <TBtn label="🖼" action="image" title="Bild einfügen" />
-            {uploadingInline && <span className="text-xs text-[var(--color-text-3)] self-center ml-2">⟳ Lade Bild…</span>}
+          <div className="flex items-center gap-0.5 flex-wrap rounded-[10px] border p-1" style={{ background: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}>
+            <ToolBtn icon={Bold} action="bold" title="Fett" />
+            <ToolBtn icon={Italic} action="italic" title="Kursiv" />
+            <span className="w-px h-5 mx-1" style={{ background: 'var(--color-border)' }} />
+            <ToolBtn icon={Heading2} action="h2" title="Überschrift 2" />
+            <ToolBtn icon={Heading3} action="h3" title="Überschrift 3" />
+            <span className="w-px h-5 mx-1" style={{ background: 'var(--color-border)' }} />
+            <ToolBtn icon={Quote} action="quote" title="Zitat" />
+            <ToolBtn icon={List} action="ul" title="Liste" />
+            <ToolBtn icon={Code2} action="code" title="Codeblock" />
+            <span className="w-px h-5 mx-1" style={{ background: 'var(--color-border)' }} />
+            <ToolBtn icon={Link2} action="link" title="Link" />
+            <ToolBtn icon={ImageIco} action="image" title="Bild einfügen" />
+            {uploadingInline && <span className="flex items-center gap-1 text-[11px] text-[var(--color-text-3)] ml-2"><Loader2 size={11} className="animate-spin" />Bild…</span>}
           </div>
-          <textarea
-            ref={editorRef}
-            value={String(form[contentKey] ?? '')}
+
+          {/* Content */}
+          <textarea ref={editorRef} value={activeContent}
             onChange={e => setTabField(contentKey, e.target.value)}
-            onPaste={handlePaste}
-            onDrop={handleDrop}
-            onDragOver={e => e.preventDefault()}
-            placeholder={`Inhalt auf ${activeTab === 'en' ? 'Englisch (Pflicht)' : activeTab === 'de' ? 'Deutsch (optional)' : 'Arabisch (optional)'}…\n\nTipp: Bilder per Drag&Drop oder Ctrl+V einfügen.`}
+            onPaste={handlePaste} onDrop={handleDrop} onDragOver={e => e.preventDefault()}
+            placeholder={`Schreibe auf ${activeTab === 'en' ? 'Englisch (Pflicht)' : activeTab === 'de' ? 'Deutsch' : 'Arabisch'}…\n\nBilder per Drag&Drop oder ⌘V einfügen.`}
             dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
-            className="flex-1 w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-b-lg px-4 py-3 text-[var(--color-text-1)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--color-accent)] leading-relaxed"
-          />
-        </div>
+            className="flex-1 min-h-[200px] w-full bg-transparent text-[14px] font-mono leading-relaxed text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] outline-none resize-none" />
 
-        {/* Preview */}
-        <div className="flex flex-col flex-1 min-w-0">
-          <p className="text-xs text-[var(--color-text-3)] mb-1.5 px-1 font-medium uppercase tracking-widest flex-shrink-0">
-            Vorschau ({activeTab.toUpperCase()})
-          </p>
-          <div
-            dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
-            className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-5 py-4 overflow-auto text-sm
-              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[var(--color-text-1)] [&_h1]:mt-4 [&_h1]:mb-2
-              [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[var(--color-text-1)] [&_h2]:mt-4 [&_h2]:mb-2
-              [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[var(--color-text-1)] [&_h3]:mt-3 [&_h3]:mb-1
-              [&_p]:text-[var(--color-text-2)] [&_p]:mb-3 [&_p]:leading-relaxed
-              [&_ul]:text-[var(--color-text-2)] [&_ul]:pl-5 [&_ul]:mb-3 [&_ul]:list-disc
-              [&_ol]:text-[var(--color-text-2)] [&_ol]:pl-5 [&_ol]:mb-3 [&_ol]:list-decimal
-              [&_li]:mb-1 [&_li]:text-[var(--color-text-2)]
-              [&_a]:text-[var(--color-accent)]
-              [&_strong]:text-[var(--color-text-1)] [&_strong]:font-semibold
-              [&_em]:italic [&_em]:text-[var(--color-text-2)]
-              [&_code]:text-[var(--color-accent)] [&_code]:bg-[var(--color-surface-2)] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
-              [&_pre]:bg-[var(--color-surface-2)] [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:mb-3 [&_pre]:overflow-x-auto
-              [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0
-              [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-brand)] [&_blockquote]:pl-4 [&_blockquote]:text-[var(--color-text-2)] [&_blockquote]:italic [&_blockquote]:mb-3
-              [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2
-              [&_hr]:border-[var(--color-border-strong)] [&_hr]:my-4
-              [&_table]:w-full [&_table]:text-sm [&_th]:text-left [&_th]:text-[var(--color-text-2)] [&_th]:pb-2 [&_td]:text-[var(--color-text-2)] [&_td]:py-1"
-          >
-            {String(form[contentKey] ?? '') ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {String(form[contentKey] ?? '')}
-              </ReactMarkdown>
-            ) : (
-              <p className="text-[var(--color-text-3)] italic">Vorschau erscheint beim Schreiben…</p>
-            )}
+          {/* Excerpt */}
+          <div className="border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-3)] mb-1.5">Auszug <span className="font-normal normal-case text-[var(--color-text-3)]">— optional, sonst auto-generiert</span></label>
+            <input type="text" value={String(form[excerptKey] ?? '')} onChange={e => setTabField(excerptKey, e.target.value)}
+              placeholder={`Kurzer Teaser auf ${activeTab.toUpperCase()}…`} dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
+              className="w-full rounded-[10px] border px-3 py-2 text-[13px] text-[var(--color-text-2)] outline-none focus:border-[var(--color-accent)]" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border-strong)' }} />
           </div>
         </div>
-      </div>
 
-      {/* ── Excerpt (aktueller Tab) ───────────────────────────────────────────── */}
-      <div className="mt-3 flex-shrink-0">
-        <input
-          type="text"
-          value={String(form[excerptKey] ?? '')}
-          onChange={e => setTabField(excerptKey, e.target.value)}
-          placeholder={`Auszug auf ${activeTab === 'en' ? 'Englisch' : activeTab === 'de' ? 'Deutsch' : 'Arabisch'} (optional — wird beim Build automatisch generiert)`}
-          dir={activeTab === 'ar' ? 'rtl' : 'ltr'}
-          className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border-strong)] rounded-lg px-3 py-2 text-[var(--color-text-2)] text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder-gray-600"
-        />
+        {/* ── RIGHT: Live Article Preview ──────────────────────────────── */}
+        <div className="min-h-0 hidden lg:flex flex-col rounded-[16px] border overflow-hidden" style={{ background: 'var(--color-surface-0)', borderColor: 'var(--color-border)' }}>
+          <div className="flex items-center justify-between px-4 h-10 border-b flex-shrink-0" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}>
+            <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-text-3)]"><Eye size={12} /> Live-Vorschau</span>
+            <span className="flex items-center gap-1 text-[11px] text-[var(--color-text-3)]"><Globe size={11} />{activeTab.toUpperCase()}{activeTab !== 'en' && !String(form[titleKey] ?? '').trim() && <span className="ml-1 text-[var(--color-warning)]">· Fallback EN</span>}</span>
+          </div>
+
+          <div className="overflow-y-auto flex-1">
+            {/* cover */}
+            {form.cover_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.cover_image_url} alt="" className="w-full aspect-[16/9] object-cover" />
+            )}
+            <article className="px-7 py-6 mx-auto max-w-[640px]" dir={activeTab === 'ar' ? 'rtl' : 'ltr'}>
+              {/* tags */}
+              {form.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {form.tags.map(t => <span key={t} className="text-[11px] font-medium" style={{ color: 'var(--color-brand)' }}>#{t}</span>)}
+                </div>
+              )}
+              {/* title */}
+              <h1 className="text-[28px] font-bold tracking-tight leading-[1.15] text-[var(--color-text-1)]">
+                {previewTitle || <span className="text-[var(--color-text-3)] italic font-normal">Titel erscheint hier…</span>}
+              </h1>
+              {/* meta */}
+              <div className="flex items-center gap-2.5 mt-4 mb-6 pb-6 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/yb-mark.svg" alt="" className="w-8 h-8 rounded-[8px]" />
+                <div>
+                  <p className="text-[13px] font-medium text-[var(--color-text-1)] leading-tight">Yusef Bach</p>
+                  <p className="text-[11px] text-[var(--color-text-3)]">{fmtPreviewDate} · {readMin} Min Lesezeit</p>
+                </div>
+              </div>
+              {/* body */}
+              <div className="text-[15px] leading-[1.7]
+                [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:text-[var(--color-text-1)] [&_h1]:mt-6 [&_h1]:mb-3
+                [&_h2]:text-[19px] [&_h2]:font-bold [&_h2]:text-[var(--color-text-1)] [&_h2]:mt-6 [&_h2]:mb-2.5
+                [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:text-[var(--color-text-1)] [&_h3]:mt-5 [&_h3]:mb-2
+                [&_p]:text-[var(--color-text-2)] [&_p]:mb-4
+                [&_ul]:text-[var(--color-text-2)] [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:space-y-1
+                [&_ol]:text-[var(--color-text-2)] [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:space-y-1
+                [&_a]:text-[var(--color-brand)] [&_a]:underline [&_a]:underline-offset-2
+                [&_strong]:text-[var(--color-text-1)] [&_strong]:font-semibold
+                [&_code]:text-[var(--color-brand)] [&_code]:bg-[var(--color-surface-2)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[13px]
+                [&_pre]:bg-[var(--color-surface-2)] [&_pre]:p-4 [&_pre]:rounded-[12px] [&_pre]:mb-4 [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-[var(--color-border)]
+                [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                [&_blockquote]:border-l-[3px] [&_blockquote]:border-[var(--color-brand)] [&_blockquote]:pl-4 [&_blockquote]:py-0.5 [&_blockquote]:text-[var(--color-text-2)] [&_blockquote]:italic [&_blockquote]:my-4
+                [&_img]:rounded-[12px] [&_img]:my-4 [&_img]:w-full
+                [&_hr]:border-[var(--color-border)] [&_hr]:my-6">
+                {activeContent ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeContent}</ReactMarkdown>
+                ) : (
+                  <p className="text-[var(--color-text-3)] italic">Dein Beitrag erscheint hier in Echtzeit, während du schreibst…</p>
+                )}
+              </div>
+            </article>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -797,116 +769,171 @@ export default function ThoughtsPage() {
   const draftCount = posts.filter(p => p.status === 'draft').length
   const liveCount = posts.filter(p => p.status === 'published').length
 
+  // Helpers
+  const readingTime = (p: ThoughtPost) => p.reading_minutes ?? Math.max(1, Math.round(((p.content_en || '').trim().split(/\s+/).filter(Boolean).length) / 200))
+  const excerptOf = (p: ThoughtPost) => {
+    const ex = p.excerpt_de || p.excerpt_en
+    if (ex) return ex
+    const raw = (p.content_de || p.content_en || '').replace(/[#>*`_!\[\]()-]/g, ' ').replace(/\s+/g, ' ').trim()
+    return raw.slice(0, 160)
+  }
+  const langsOf = (p: ThoughtPost) => ['EN', p.title_de ? 'DE' : null, p.title_ar ? 'AR' : null].filter(Boolean) as string[]
+
+  const featured = filtered[0]
+  const rest = filtered.slice(1)
+
+  const Cover = ({ post, className }: { post: ThoughtPost; className: string }) => (
+    post.cover_image_url
+      // eslint-disable-next-line @next/next/no-img-element
+      ? <img src={post.cover_image_url} alt="" className={`${className} object-cover transition-transform duration-500 group-hover:scale-[1.04]`} />
+      : <div className={`${className} flex items-center justify-center`} style={{ background: 'var(--gradient-aurora-soft)' }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: 'var(--color-text-3)', opacity: .5 }}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+  )
+
+  const StatusBadge = ({ post, overlay }: { post: ThoughtPost; overlay?: boolean }) => (
+    <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+      style={post.status === 'published'
+        ? { color: overlay ? '#fff' : 'var(--color-success)', background: overlay ? 'rgba(48,209,88,0.9)' : 'rgba(48,209,88,.1)', backdropFilter: overlay ? 'blur(8px)' : undefined, border: overlay ? 'none' : '1px solid rgba(48,209,88,.25)' }
+        : { color: overlay ? '#fff' : 'var(--color-text-3)', background: overlay ? 'rgba(0,0,0,0.5)' : 'var(--color-surface-2)', backdropFilter: overlay ? 'blur(8px)' : undefined, border: overlay ? 'none' : '1px solid var(--color-border)' }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: post.status === 'published' ? (overlay ? '#fff' : 'var(--color-success)') : 'currentColor' }} />
+      {post.status === 'published' ? 'Live' : 'Entwurf'}
+    </span>
+  )
+
+  const DeleteBtn = ({ post }: { post: ThoughtPost }) => (
+    <button onClick={(e) => { e.stopPropagation(); deletePost(post) }} title="Löschen"
+      className="w-8 h-8 rounded-[9px] flex items-center justify-center text-white transition-all hover:scale-105"
+      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,69,58,0.9)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.45)' }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    </button>
+  )
+
+  const MetaRow = ({ post }: { post: ThoughtPost }) => (
+    <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-3)] flex-wrap">
+      <span className="font-mono">{fmtDate(post.published_at ?? post.created_at)}</span>
+      <span className="text-[var(--color-border-strong)]">·</span>
+      <span className="flex items-center gap-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{readingTime(post)} Min</span>
+      <span className="text-[var(--color-border-strong)]">·</span>
+      <span className="flex items-center gap-1">{langsOf(post).map((l, i) => <span key={l} style={{ color: i === 0 ? 'var(--color-success)' : 'var(--color-text-2)', fontWeight: 600 }}>{l}</span>)}</span>
+    </div>
+  )
+
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-0">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-1)] tracking-tight">Thoughts</h1>
-          <p className="text-[var(--color-text-2)] text-sm mt-1">Blog-Posts schreiben, bearbeiten, veröffentlichen — ein Post in EN / DE / AR</p>
+          <h1 className="text-[28px] font-semibold text-[var(--color-text-1)] tracking-tight">Thoughts</h1>
+          <p className="text-[var(--color-text-2)] text-sm mt-1">Dein Blog — ein Beitrag in EN / DE / AR</p>
         </div>
         <button onClick={() => setComposerForm(emptyForm())}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-[var(--radius-md)] transition-all hover:scale-[1.02] hover:shadow-[var(--glow-brand-strong)]"
-          style={{ background: 'var(--gradient-aurora)' }}>
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-[10px] transition-all hover:scale-[1.02]"
+          style={{ background: 'var(--color-brand)' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Neuer Post
         </button>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-[var(--color-border)] w-fit"
-        style={{ background: 'var(--color-surface-2)' }}>
-        {([['all', `Alle (${posts.length})`], ['draft', `Entwürfe (${draftCount})`], ['published', `Live (${liveCount})`]] as const).map(([f, label]) => (
+      {/* Filter */}
+      <div className="flex items-center gap-1 p-1 rounded-[10px] border w-fit" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+        {([['all', `Alle (${posts.length})`], ['published', `Live (${liveCount})`], ['draft', `Entwürfe (${draftCount})`]] as const).map(([f, label]) => (
           <button key={f} onClick={() => setFilter(f as Filter)}
-            className="px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium transition-all"
-            style={{
-              background: filter === f ? 'var(--color-surface-1)' : 'transparent',
-              color: filter === f ? 'var(--color-text-1)' : 'var(--color-text-3)',
-              boxShadow: filter === f ? '0 1px 3px rgba(0,0,0,.15)' : 'none',
-            }}>
+            className="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all"
+            style={{ background: filter === f ? 'var(--color-surface-1)' : 'transparent', color: filter === f ? 'var(--color-text-1)' : 'var(--color-text-3)', boxShadow: filter === f ? '0 1px 3px rgba(0,0,0,.15)' : 'none' }}>
             {label}
           </button>
         ))}
       </div>
 
-      {/* Post List */}
       {loading ? (
-        <div className="flex items-center justify-center gap-3 py-20 text-[var(--color-text-3)]">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-          <span className="text-sm">Lädt Posts…</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[0,1,2,3].map(i => <div key={i} className="aspect-[16/11] rounded-[16px] animate-pulse" style={{ background: 'var(--color-surface-2)' }} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[var(--radius-xl)] border border-dashed border-[var(--color-border)]">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--color-text-3)]" style={{color:'var(--color-text-3)'}}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          <p className="text-sm text-[var(--color-text-3)]">
-            {posts.length === 0 ? 'Noch keine Posts — klicke „+ Neuer Post" um den ersten zu schreiben.' : 'Keine Posts in dieser Kategorie.'}
-          </p>
+        <div className="flex flex-col items-center justify-center py-24 gap-3 rounded-[18px] border border-dashed" style={{ borderColor: 'var(--color-border-strong)' }}>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: 'var(--color-text-3)' }}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <p className="text-sm text-[var(--color-text-3)]">{posts.length === 0 ? 'Noch keine Beiträge — schreib deinen ersten Gedanken.' : 'Keine Beiträge in dieser Kategorie.'}</p>
+          {posts.length === 0 && (
+            <button onClick={() => setComposerForm(emptyForm())} className="mt-1 px-4 py-2 text-sm font-semibold text-white rounded-[10px]" style={{ background: 'var(--color-brand)' }}>Ersten Post schreiben</button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(post => {
-            const displayTitle = post.title_en || post.title_de || post.title_ar || ''
-            const hasDe = Boolean(post.title_de)
-            const hasAr = Boolean(post.title_ar)
-            return (
-              <div key={post.id}
-                style={{ background:'var(--color-surface-1)', borderColor:'var(--color-border)' }}
-                className={`group flex items-center gap-3 px-3 py-3 rounded-[var(--radius-lg)] border transition-all duration-150 hover:border-[var(--color-brand)]/30 hover:shadow-[var(--glow-brand)] hover:-translate-y-px ${post.status !== 'published' ? 'opacity-70' : ''}`}
-              >
-                {/* Cover */}
-                <div className="w-14 h-10 rounded-[var(--radius-md)] overflow-hidden shrink-0">
-                  {post.cover_image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={post.cover_image_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full" style={{ background:'var(--gradient-aurora-soft)' }} />
-                  )}
-                </div>
+        <AnimatePresence mode="popLayout">
+          <motion.div layout className="space-y-6">
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[var(--color-text-1)] text-sm font-semibold truncate">
-                    {displayTitle || <span className="text-[var(--color-text-3)] italic font-normal">Kein Titel</span>}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    <span className="text-[var(--color-text-3)] text-[11px] font-mono">{fmtDate(post.published_at ?? post.created_at)}</span>
-                    <span className="text-[var(--color-border-strong)]">·</span>
-                    <span className="text-[11px] font-semibold" style={{color:'var(--color-success)'}}>EN</span>
-                    {hasDe && <span className="text-[11px] font-medium text-[var(--color-text-2)]">DE</span>}
-                    {hasAr && <span className="text-[11px] font-medium text-[var(--color-text-2)]">AR</span>}
-                    {post.tags.slice(0,3).map(tag => (
-                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                        style={{ background:'rgba(0,229,255,.08)', color:'var(--color-accent)', border:'1px solid rgba(0,229,255,.2)' }}>
-                        {tag}
-                      </span>
-                    ))}
-                    {post.tags.length > 3 && <span className="text-[10px] text-[var(--color-text-3)]">+{post.tags.length-3}</span>}
+            {/* ── Featured ─────────────────────────────────── */}
+            {featured && (
+              <motion.div key={featured.id} layout
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => setComposerForm(postToForm(featured))}
+                className={`group relative cursor-pointer rounded-[20px] border overflow-hidden grid grid-cols-1 md:grid-cols-2 transition-all duration-300 hover:-translate-y-1 ${featured.status !== 'published' ? 'opacity-75' : ''}`}
+                style={{ background: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 22px 50px -20px rgba(0,0,0,.55)'; e.currentTarget.style.borderColor = 'var(--color-border-strong)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--color-border)' }}>
+                <div className="relative overflow-hidden min-h-[200px] md:min-h-[260px]">
+                  <Cover post={featured} className="w-full h-full absolute inset-0" />
+                  <div className="absolute inset-x-0 top-0 h-20 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)' }} />
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                    <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold text-white" style={{ background: 'var(--color-brand)' }}>★ Neuester</span>
+                    <StatusBadge post={featured} overlay />
                   </div>
+                  <div className="absolute top-3 right-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"><DeleteBtn post={featured} /></div>
                 </div>
-
-                {/* Status */}
-                <span className="text-[11px] px-2 py-0.5 rounded-full border shrink-0 font-medium"
-                  style={post.status === 'published'
-                    ? { color:'var(--color-success)', background:'rgba(34,197,94,.08)', borderColor:'rgba(34,197,94,.25)' }
-                    : { color:'var(--color-text-3)', background:'var(--color-surface-2)', borderColor:'var(--color-border)' }}>
-                  {post.status === 'published' ? '● Live' : '○ Entwurf'}
-                </span>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setComposerForm(postToForm(post))} title="Bearbeiten"
-                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button onClick={() => deletePost(post)} title="Löschen"
-                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                  </button>
+                <div className="p-6 flex flex-col justify-center">
+                  {featured.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2.5">
+                      {featured.tags.slice(0, 4).map(t => <span key={t} className="text-[11px] font-medium" style={{ color: 'var(--color-brand)' }}>#{t}</span>)}
+                    </div>
+                  )}
+                  <h2 className="text-[22px] font-bold tracking-tight leading-[1.2] text-[var(--color-text-1)] line-clamp-3">
+                    {featured.title_en || featured.title_de || <span className="italic font-normal text-[var(--color-text-3)]">Kein Titel</span>}
+                  </h2>
+                  <p className="text-[13px] text-[var(--color-text-3)] mt-2.5 line-clamp-3 leading-relaxed">{excerptOf(featured)}</p>
+                  <div className="mt-4"><MetaRow post={featured} /></div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              </motion.div>
+            )}
+
+            {/* ── Grid ─────────────────────────────────────── */}
+            {rest.length > 0 && (
+              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {rest.map(post => (
+                  <motion.div key={post.id} layout
+                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    onClick={() => setComposerForm(postToForm(post))}
+                    className={`group relative cursor-pointer rounded-[16px] border overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1.5 ${post.status !== 'published' ? 'opacity-70' : ''}`}
+                    style={{ background: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 18px 44px -18px rgba(0,0,0,.55)'; e.currentTarget.style.borderColor = 'var(--color-border-strong)' }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--color-border)' }}>
+                    <div className="relative aspect-[16/9] overflow-hidden">
+                      <Cover post={post} className="w-full h-full absolute inset-0" />
+                      <div className="absolute inset-x-0 top-0 h-14 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }} />
+                      <div className="absolute top-2.5 left-2.5"><StatusBadge post={post} overlay /></div>
+                      <div className="absolute top-2.5 right-2.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"><DeleteBtn post={post} /></div>
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col">
+                      {post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-1.5">
+                          {post.tags.slice(0, 3).map(t => <span key={t} className="text-[10px] font-medium" style={{ color: 'var(--color-brand)' }}>#{t}</span>)}
+                        </div>
+                      )}
+                      <h3 className="text-[15px] font-semibold leading-snug text-[var(--color-text-1)] line-clamp-2">
+                        {post.title_en || post.title_de || <span className="italic font-normal text-[var(--color-text-3)]">Kein Titel</span>}
+                      </h3>
+                      <p className="text-[12px] text-[var(--color-text-3)] mt-1.5 line-clamp-2 leading-relaxed flex-1">{excerptOf(post)}</p>
+                      <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}><MetaRow post={post} /></div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       )}
     </div>
   )
