@@ -216,24 +216,38 @@ export async function checkMaintenanceMode(): Promise<ServiceHealth> {
   return { name: 'Maintenance', status: 'healthy', latencyMs: ms, message: 'AUS' }
 }
 
+// Aktive Publish-Workflows. Translations laufen seit dem repo-first-Umbau NICHT
+// mehr über einen Workflow (Direkt-Commit via /api/lang-files) und sind hier raus.
+const PUBLISH_WORKFLOWS = ['publish-projects.yml', 'publish-roadmap.yml', 'publish-thoughts.yml'] as const
+
 export async function checkLastPublish(): Promise<ServiceHealth> {
   const token = process.env.GITHUB_TOKEN
   if (!token) return { name: 'Letzter Publish', status: 'unknown', message: 'GITHUB_TOKEN fehlt' }
 
+  type Run = { status: string; conclusion: string | null; html_url: string; created_at: string }
+
+  // Letzten Run jedes aktiven Publish-Workflows holen, dann den neuesten nehmen.
   const { result, ms, error } = await timed(async () => {
-    const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/publish-translations.yml/runs?per_page=1`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+    const runs = await Promise.all(
+      PUBLISH_WORKFLOWS.map(async wf => {
+        const res = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${wf}/runs?per_page=1`,
+          { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+        )
+        if (!res.ok) return null
+        const json = await res.json() as { workflow_runs: Run[] }
+        return json.workflow_runs[0] ?? null
+      })
     )
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return res.json() as Promise<{ workflow_runs: Array<{ status: string; conclusion: string | null; html_url: string; created_at: string }> }>
+    return runs.filter((r): r is Run => r !== null)
   })
 
   if (error || !result) {
     return { name: 'Letzter Publish', status: 'unknown', latencyMs: ms, message: error }
   }
 
-  const run = result.workflow_runs[0]
+  // Neuesten Run über alle Workflows hinweg wählen.
+  const run = result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
   if (!run) return { name: 'Letzter Publish', status: 'unknown', latencyMs: ms, message: 'Noch nie ausgeführt' }
 
   const minsAgo = Math.round((Date.now() - new Date(run.created_at).getTime()) / 60000)

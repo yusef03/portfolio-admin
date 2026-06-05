@@ -62,12 +62,12 @@ function StatCard({
         background: accent
           ? 'var(--gradient-aurora-soft)'
           : warn && Number(value) > 0
-          ? 'rgba(245,158,11,.06)'
+          ? 'rgba(255,214,10,.06)'
           : 'var(--color-surface-1)',
         borderColor: accent
-          ? 'rgba(157,0,255,.25)'
+          ? 'rgba(10,132,255,.25)'
           : warn && Number(value) > 0
-          ? 'rgba(245,158,11,.3)'
+          ? 'rgba(255,214,10,.3)'
           : 'var(--color-border)',
       }}
     >
@@ -77,7 +77,7 @@ function StatCard({
           background: accent
             ? 'var(--gradient-aurora)'
             : warn && Number(value) > 0
-            ? 'rgba(245,158,11,.12)'
+            ? 'rgba(255,214,10,.12)'
             : 'var(--color-surface-2)',
         }}
       >
@@ -313,15 +313,15 @@ export default function TranslationsPage() {
           className="rounded-[var(--radius-md)] border px-4 py-3 text-sm flex items-center gap-2"
           style={{
             borderColor: commitStatus === 'success'
-              ? 'rgba(34,197,94,.3)'
+              ? 'rgba(48,209,88,.3)'
               : commitStatus === 'error'
-              ? 'rgba(239,68,68,.3)'
-              : 'rgba(0,229,255,.3)',
+              ? 'rgba(255,69,58,.3)'
+              : 'rgba(10,132,255,.3)',
             background: commitStatus === 'success'
-              ? 'rgba(34,197,94,.06)'
+              ? 'rgba(48,209,88,.06)'
               : commitStatus === 'error'
-              ? 'rgba(239,68,68,.06)'
-              : 'rgba(0,229,255,.06)',
+              ? 'rgba(255,69,58,.06)'
+              : 'rgba(10,132,255,.06)',
             color: commitStatus === 'success'
               ? 'var(--color-success)'
               : commitStatus === 'error'
@@ -337,7 +337,7 @@ export default function TranslationsPage() {
       {isDirty && (
         <div
           className="rounded-[var(--radius-md)] border px-4 py-3 text-sm flex items-center gap-2"
-          style={{ borderColor: 'rgba(245,158,11,.3)', background: 'rgba(245,158,11,.06)', color: 'var(--color-warning)' }}
+          style={{ borderColor: 'rgba(255,214,10,.3)', background: 'rgba(255,214,10,.06)', color: 'var(--color-warning)' }}
         >
           <AlertCircle size={14} />
           <span><strong>{changedKeys.size}</strong> geänderte Key{changedKeys.size !== 1 ? 's'  : ''} — noch nicht ins Repo committed.</span>
@@ -348,7 +348,7 @@ export default function TranslationsPage() {
       {loadError && (
         <div
           className="rounded-[var(--radius-md)] border px-4 py-3 text-sm flex items-center gap-2"
-          style={{ borderColor: 'rgba(239,68,68,.3)', background: 'rgba(239,68,68,.06)', color: 'var(--color-danger)' }}
+          style={{ borderColor: 'rgba(255,69,58,.3)', background: 'rgba(255,69,58,.06)', color: 'var(--color-danger)' }}
         >
           <XCircle size={14} />
           <span>Fehler beim Laden: {loadError}</span>
@@ -424,7 +424,7 @@ export default function TranslationsPage() {
                       className="border-b border-[var(--color-border)] last:border-0 transition-colors"
                       style={{
                         background: isEvenRow ? 'var(--color-surface-1)' : 'var(--color-surface-0)',
-                        borderLeft: isChanged ? '2px solid rgba(245,158,11,.6)' : '2px solid transparent',
+                        borderLeft: isChanged ? '2px solid rgba(255,214,10,.6)' : '2px solid transparent',
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
                       onMouseLeave={e => (e.currentTarget.style.background = isEvenRow ? 'var(--color-surface-1)' : 'var(--color-surface-0)')}

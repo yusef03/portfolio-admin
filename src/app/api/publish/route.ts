@@ -2,9 +2,13 @@
  * POST /api/publish  → triggert GitHub Actions Workflow
  * GET  /api/publish  → gibt Status des letzten Runs zurück
  *
- * Query-Parameter:
- *   ?target=translations  (Standard)
+ * Query-Parameter (Pflicht):
  *   ?target=projects
+ *   ?target=roadmap
+ *   ?target=thoughts
+ *
+ * Hinweis: Translations laufen seit dem repo-first-Umbau NICHT mehr über einen
+ * publish-Workflow, sondern committen direkt via /api/lang-files.
  *
  * Nur für eingeloggte User.
  */
@@ -12,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { triggerPublish, getLastPublishStatus } from '@/lib/github'
+import { triggerPublish, getLastPublishStatus, type PublishTarget } from '@/lib/github'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -25,14 +29,11 @@ async function getUser() {
   return user
 }
 
-type Target = 'translations' | 'projects' | 'roadmap' | 'thoughts'
+const VALID_TARGETS: readonly PublishTarget[] = ['projects', 'roadmap', 'thoughts']
 
-function parseTarget(req: NextRequest): Target {
+function parseTarget(req: NextRequest): PublishTarget | null {
   const t = req.nextUrl.searchParams.get('target')
-  if (t === 'projects') return 'projects'
-  if (t === 'roadmap') return 'roadmap'
-  if (t === 'thoughts') return 'thoughts'
-  return 'translations'
+  return VALID_TARGETS.includes(t as PublishTarget) ? (t as PublishTarget) : null
 }
 
 export async function POST(req: NextRequest) {
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
 
   const target = parseTarget(req)
+  if (!target) return NextResponse.json({ error: 'Unbekanntes oder fehlendes target (erlaubt: projects, roadmap, thoughts)' }, { status: 400 })
+
   const result = await triggerPublish(target)
   return NextResponse.json(result, { status: result.ok ? 200 : 500 })
 }
@@ -49,6 +52,8 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
 
   const target = parseTarget(req)
+  if (!target) return NextResponse.json({ error: 'Unbekanntes oder fehlendes target (erlaubt: projects, roadmap, thoughts)' }, { status: 400 })
+
   const status = await getLastPublishStatus(target)
   return NextResponse.json(status)
 }

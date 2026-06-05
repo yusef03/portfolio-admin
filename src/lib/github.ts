@@ -6,21 +6,23 @@
 const REPO_OWNER = 'yusef03'
 const REPO_NAME  = 'BETAPortfolioBach'
 
+// Translations laufen seit dem repo-first-Umbau NICHT mehr über einen
+// publish-Workflow, sondern committen direkt via /api/lang-files. Daher hier
+// kein 'translations'-Target mehr.
 const WORKFLOW_FILES = {
-  translations: 'publish-translations.yml',
   projects:     'publish-projects.yml',
   roadmap:      'publish-roadmap.yml',
   thoughts:     'publish-thoughts.yml',
 } as const
 
-type PublishTarget = keyof typeof WORKFLOW_FILES
+export type PublishTarget = keyof typeof WORKFLOW_FILES
 
 /**
  * Triggert einen GitHub Actions Workflow via workflow_dispatch.
- * target: 'translations' | 'projects'
+ * target: 'projects' | 'roadmap' | 'thoughts'
  */
 export async function triggerPublish(
-  target: PublishTarget = 'translations'
+  target: PublishTarget
 ): Promise<{ ok: boolean; message: string }> {
   const token = process.env.GITHUB_TOKEN
   if (!token) return { ok: false, message: 'GITHUB_TOKEN nicht gesetzt' }
@@ -51,7 +53,7 @@ export async function triggerPublish(
  * Gibt den Status des letzten Runs für einen Workflow zurück.
  */
 export async function getLastPublishStatus(
-  target: PublishTarget = 'translations'
+  target: PublishTarget
 ): Promise<{
   status: 'running' | 'success' | 'failure' | 'unknown'
   url?: string

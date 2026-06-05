@@ -113,13 +113,15 @@ export default function DashboardPage() {
 
   async function loadCounts() {
     try {
-      const [t, p, th, r] = await Promise.all([
-        supabase.from('translations').select('id', { count: 'exact', head: true }),
+      // Translations sind repo-first: Wahrheit ist lang/*.json im Repo (via
+      // /api/lang-files), NICHT mehr die Supabase-translations-Tabelle.
+      const [lang, p, th, r] = await Promise.all([
+        fetch('/api/lang-files').then(res => res.ok ? res.json() as Promise<{ totalKeys?: number }> : { totalKeys: 0 }),
         supabase.from('projects').select('id', { count: 'exact', head: true }),
         supabase.from('thoughts').select('id', { count: 'exact', head: true }),
         supabase.from('roadmap').select('id', { count: 'exact', head: true }),
       ])
-      setCounts({ translations: t.count ?? 0, projects: p.count ?? 0, thoughts: th.count ?? 0, roadmap: r.count ?? 0 })
+      setCounts({ translations: lang.totalKeys ?? 0, projects: p.count ?? 0, thoughts: th.count ?? 0, roadmap: r.count ?? 0 })
     } catch { setCounts({ translations: 0, projects: 0, thoughts: 0, roadmap: 0 }) }
   }
 

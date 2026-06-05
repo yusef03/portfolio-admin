@@ -104,8 +104,8 @@ export function HealthCard({ service }: { service: ServiceHealth }) {
             <div
               className="rounded-[var(--radius-md)] p-3 border"
               style={{
-                background: 'rgba(157,0,255,0.06)',
-                borderColor: 'rgba(157,0,255,0.25)',
+                background: 'rgba(10,132,255,0.06)',
+                borderColor: 'rgba(10,132,255,0.25)',
               }}
             >
               <div className="text-xs font-semibold text-[var(--color-brand-light)] mb-1">💡 Was tun?</div>
