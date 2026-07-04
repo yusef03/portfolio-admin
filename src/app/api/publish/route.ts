@@ -7,27 +7,13 @@
  *   ?target=roadmap
  *   ?target=thoughts
  *
- * Hinweis: Translations laufen seit dem repo-first-Umbau NICHT mehr über einen
- * publish-Workflow, sondern committen direkt via /api/lang-files.
- *
- * Nur für eingeloggte User.
+ * Nur für Admin.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { requireAdmin } from '@/lib/auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { triggerPublish, getLastPublishStatus, type PublishTarget } from '@/lib/github'
-
-async function getUser() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
 
 const VALID_TARGETS: readonly PublishTarget[] = ['projects', 'roadmap', 'thoughts']
 
@@ -37,23 +23,36 @@ function parseTarget(req: NextRequest): PublishTarget | null {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
+  const guard = await requireAdmin()
+  if (!guard.ok) return guard.response
+
+  const rl = rateLimit(`publish:${clientIp(req.headers)}`, 20, 60 * 60 * 1000)
+  if (!rl.ok) return NextResponse.json({ error: 'Rate-Limit erreicht' }, { status: 429 })
 
   const target = parseTarget(req)
-  if (!target) return NextResponse.json({ error: 'Unbekanntes oder fehlendes target (erlaubt: projects, roadmap, thoughts)' }, { status: 400 })
+  if (!target) return NextResponse.json({ error: 'Ungültiges target' }, { status: 400 })
 
-  const result = await triggerPublish(target)
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 })
+  try {
+    const result = await triggerPublish(target)
+    return NextResponse.json(result, { status: result.ok ? 200 : 500 })
+  } catch (err) {
+    console.error('[publish POST]', err)
+    return NextResponse.json({ error: 'Publish fehlgeschlagen' }, { status: 500 })
+  }
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
+  const guard = await requireAdmin()
+  if (!guard.ok) return guard.response
 
   const target = parseTarget(req)
-  if (!target) return NextResponse.json({ error: 'Unbekanntes oder fehlendes target (erlaubt: projects, roadmap, thoughts)' }, { status: 400 })
+  if (!target) return NextResponse.json({ error: 'Ungültiges target' }, { status: 400 })
 
-  const status = await getLastPublishStatus(target)
-  return NextResponse.json(status)
+  try {
+    const status = await getLastPublishStatus(target)
+    return NextResponse.json(status)
+  } catch (err) {
+    console.error('[publish GET]', err)
+    return NextResponse.json({ error: 'Status nicht verfügbar' }, { status: 500 })
+  }
 }

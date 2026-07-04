@@ -1,31 +1,34 @@
 /**
  * POST /api/repo-commit
  * Committet eine Datei (und optional einen WebP-Partner) ins Portfolio-Repo
- * via GitHub Contents API. Erfordert Auth + GITHUB_TOKEN mit contents:write.
+ * via GitHub Contents API. Erfordert Admin-Auth + GITHUB_TOKEN mit contents:write.
  * FormData: path (Repo-Pfad), file (Datei), optional: webpPath, webpFile
  */
 
-import { NextResponse }    from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies }         from 'next/headers'
+import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
+import { getRepoConfig } from '@/lib/repo-config'
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
-const GITHUB_REPO  = process.env.GITHUB_REPO ?? 'yusef03/BETAPortfolioBach'
 
-async function getUser() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+const MAX_FILE_BYTES = 25 * 1024 * 1024 // 25 MB
+const ALLOWED_EXT = new Set([
+  'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'ico',
+  'pdf', 'md', 'json', 'txt',
+])
+
+function isSafeRepoPath(p: string): boolean {
+  if (!p || p.length > 300) return false
+  if (p.startsWith('/') || p.includes('..') || p.includes('\\')) return false
+  if (!/^[a-zA-Z0-9._\-\/]+$/.test(p)) return false
+  const ext = p.split('.').pop()?.toLowerCase() ?? ''
+  return ALLOWED_EXT.has(ext)
 }
 
-async function getFileSha(path: string): Promise<string | null> {
+async function getFileSha(repoFullName: string, path: string): Promise<string | null> {
   const res = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`,
+    `https://api.github.com/repos/${repoFullName}/contents/${path}`,
     {
       headers: {
         Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -40,6 +43,7 @@ async function getFileSha(path: string): Promise<string | null> {
 }
 
 async function commitFile(
+  repoFullName: string,
   path: string,
   content: Buffer,
   sha: string | null,
@@ -53,7 +57,7 @@ async function commitFile(
   if (sha) body.sha = sha
 
   const res = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`,
+    `https://api.github.com/repos/${repoFullName}/contents/${path}`,
     {
       method: 'PUT',
       headers: {
@@ -66,19 +70,19 @@ async function commitFile(
     }
   )
 
-  if (!res.ok) {
-    const err = await res.json() as { message?: string }
-    throw new Error(err.message ?? `GitHub API: HTTP ${res.status}`)
-  }
+  if (!res.ok) throw new Error(`GitHub PUT ${res.status}`)
 
   const data = await res.json() as { commit: { html_url: string } }
   return data.commit.html_url
 }
 
 export async function POST(req: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
-  if (!GITHUB_TOKEN) return NextResponse.json({ error: 'GITHUB_TOKEN fehlt' }, { status: 500 })
+  const guard = await requireAdmin()
+  if (!guard.ok) return guard.response
+  if (!GITHUB_TOKEN) return NextResponse.json({ error: 'Konfigurationsfehler' }, { status: 500 })
+
+  const rl = rateLimit(`repo-commit:${clientIp(req.headers)}`, 30, 60 * 60 * 1000)
+  if (!rl.ok) return NextResponse.json({ error: 'Rate-Limit erreicht' }, { status: 429 })
 
   let formData: FormData
   try {
@@ -95,21 +99,34 @@ export async function POST(req: Request) {
   if (!path || !file) {
     return NextResponse.json({ error: 'path und file sind erforderlich' }, { status: 400 })
   }
+  if (!isSafeRepoPath(path)) {
+    return NextResponse.json({ error: 'Ungültiger Pfad' }, { status: 400 })
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return NextResponse.json({ error: 'Datei zu groß' }, { status: 413 })
+  }
+  if (webpPath && !isSafeRepoPath(webpPath)) {
+    return NextResponse.json({ error: 'Ungültiger WebP-Pfad' }, { status: 400 })
+  }
+  if (webpFile && webpFile.size > MAX_FILE_BYTES) {
+    return NextResponse.json({ error: 'WebP zu groß' }, { status: 413 })
+  }
 
   try {
+    const { fullName } = getRepoConfig()
     const fileBuffer = Buffer.from(await file.arrayBuffer())
-    const sha        = await getFileSha(path)
-    const commitUrl  = await commitFile(path, fileBuffer, sha, `media: ${path} aktualisiert`)
+    const sha        = await getFileSha(fullName, path)
+    const commitUrl  = await commitFile(fullName, path, fileBuffer, sha, `media: ${path} aktualisiert`)
 
     if (webpPath && webpFile) {
       const webpBuffer = Buffer.from(await webpFile.arrayBuffer())
-      const webpSha    = await getFileSha(webpPath)
-      await commitFile(webpPath, webpBuffer, webpSha, `media: ${webpPath} (WebP) aktualisiert`)
+      const webpSha    = await getFileSha(fullName, webpPath)
+      await commitFile(fullName, webpPath, webpBuffer, webpSha, `media: ${webpPath} (WebP) aktualisiert`)
     }
 
     return NextResponse.json({ commitUrl })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch (err) {
+    console.error('[repo-commit POST]', err)
+    return NextResponse.json({ error: 'Commit fehlgeschlagen' }, { status: 500 })
   }
 }

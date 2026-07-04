@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { getRepoConfig } from './repo-config'
 
 export type ServiceStatus = 'healthy' | 'degraded' | 'down' | 'unknown'
 
@@ -25,7 +26,6 @@ export interface SystemHealth {
 }
 
 const TIMEOUT_MS  = 5000
-const GITHUB_REPO = process.env.GITHUB_REPO ?? 'yusef03/BETAPortfolioBach'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -226,12 +226,22 @@ export async function checkLastPublish(): Promise<ServiceHealth> {
 
   type Run = { status: string; conclusion: string | null; html_url: string; created_at: string }
 
+  // Ziel-Repo aus zentraler Config — fail-safe: bei ungültiger ENV wird der
+  // Health-Check "unknown" statt zu crashen.
+  let repoFullName: string
+  try {
+    repoFullName = getRepoConfig().fullName
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { name: 'Letzter Publish', status: 'unknown', message: msg }
+  }
+
   // Letzten Run jedes aktiven Publish-Workflows holen, dann den neuesten nehmen.
   const { result, ms, error } = await timed(async () => {
     const runs = await Promise.all(
       PUBLISH_WORKFLOWS.map(async wf => {
         const res = await fetch(
-          `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${wf}/runs?per_page=1`,
+          `https://api.github.com/repos/${repoFullName}/actions/workflows/${wf}/runs?per_page=1`,
           { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
         )
         if (!res.ok) return null

@@ -1,10 +1,10 @@
 /**
  * GitHub API Client
  * Nur serverseitig verwenden — Token darf nie im Browser landen.
+ * Ziel-Repo kommt aus getRepoConfig() (Vercel-ENV GITHUB_REPO).
  */
 
-const REPO_OWNER = 'yusef03'
-const REPO_NAME  = 'BETAPortfolioBach'
+import { getRepoConfig } from './repo-config'
 
 // Translations laufen seit dem repo-first-Umbau NICHT mehr über einen
 // publish-Workflow, sondern committen direkt via /api/lang-files. Daher hier
@@ -27,8 +27,9 @@ export async function triggerPublish(
   const token = process.env.GITHUB_TOKEN
   if (!token) return { ok: false, message: 'GITHUB_TOKEN nicht gesetzt' }
 
+  const { fullName } = getRepoConfig()
   const workflowFile = WORKFLOW_FILES[target]
-  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowFile}/dispatches`
+  const url = `https://api.github.com/repos/${fullName}/actions/workflows/${workflowFile}/dispatches`
 
   const res = await fetch(url, {
     method: 'POST',
@@ -62,8 +63,9 @@ export async function getLastPublishStatus(
   const token = process.env.GITHUB_TOKEN
   if (!token) return { status: 'unknown' }
 
+  const { fullName } = getRepoConfig()
   const workflowFile = WORKFLOW_FILES[target]
-  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowFile}/runs?per_page=1`
+  const url = `https://api.github.com/repos/${fullName}/actions/workflows/${workflowFile}/runs?per_page=1`
 
   try {
     const res = await fetch(url, {

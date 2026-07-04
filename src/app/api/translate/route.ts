@@ -2,57 +2,51 @@
  * POST /api/translate
  *
  * Body: { text: string, targetLang: 'EN-GB' | 'AR' }
- *   ODER für beide auf einmal:
- * Body: { text: string, both: true }
+ *   ODER für beide auf einmal: { text: string, both: true }
  *
- * Response: { translated: string }
- *   ODER: { en: string, ar: string }
- *
- * Nur für eingeloggte User (Auth-Check via Supabase).
+ * Nur für Admin.
+ * Rate-Limit: 60 Übersetzungen pro Stunde (Schutz gegen DeepL-Quota-Ausleitung).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { requireAdmin } from '@/lib/auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { translate, translateBoth } from '@/lib/deepl'
 
-export async function POST(req: NextRequest) {
-  // ─── Auth-Check ─────────────────────────────────────────────────────────────
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
-  }
+const MAX_TEXT_LENGTH = 5000
 
-  // ─── Body parsen ────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  const guard = await requireAdmin()
+  if (!guard.ok) return guard.response
+
+  const rl = rateLimit(`translate:${clientIp(req.headers)}`, 60, 60 * 60 * 1000)
+  if (!rl.ok) return NextResponse.json({ error: 'Rate-Limit erreicht' }, { status: 429 })
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body.text !== 'string' || !body.text.trim()) {
     return NextResponse.json({ error: 'text fehlt oder leer' }, { status: 400 })
   }
+  if (body.text.length > MAX_TEXT_LENGTH) {
+    return NextResponse.json({ error: 'Text zu lang' }, { status: 413 })
+  }
 
-  // ─── Übersetzen ─────────────────────────────────────────────────────────────
   try {
     if (body.both === true) {
-      // Beide Sprachen auf einmal
       const result = await translateBoth(body.text)
       return NextResponse.json(result)
     }
 
     if (!body.targetLang) {
-      return NextResponse.json({ error: 'targetLang fehlt (EN-GB oder AR)' }, { status: 400 })
+      return NextResponse.json({ error: 'targetLang fehlt' }, { status: 400 })
+    }
+    if (body.targetLang !== 'EN-GB' && body.targetLang !== 'AR') {
+      return NextResponse.json({ error: 'Ungültige targetLang' }, { status: 400 })
     }
 
     const translated = await translate(body.text, body.targetLang)
     return NextResponse.json({ translated })
-
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
-    console.error('[/api/translate]', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch (err) {
+    console.error('[translate POST]', err)
+    return NextResponse.json({ error: 'Übersetzung fehlgeschlagen' }, { status: 500 })
   }
 }

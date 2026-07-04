@@ -1,8 +1,23 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui";
+import { ShieldAlert } from "lucide-react";
+
+const ERROR_MESSAGES: Record<string, string> = {
+  no_session:              "Bitte einloggen.",
+  wrong_provider:          "Zugang nur mit GitHub-Login erlaubt.",
+  email_not_verified:      "Die verknüpfte GitHub-Email ist nicht verifiziert.",
+  email_not_whitelisted:   "Dieser GitHub-Account hat keinen Zugriff.",
+  username_not_whitelisted:"Dieser GitHub-Account hat keinen Zugriff.",
+  oauth_access_denied:     "GitHub-Login abgebrochen.",
+  missing_code:            "OAuth-Callback unvollständig.",
+  exchange_failed:         "Login fehlgeschlagen. Bitte erneut versuchen.",
+  forbidden:               "Zugang verweigert.",
+};
 
 function GithubIcon() {
   return (
@@ -12,14 +27,20 @@ function GithubIcon() {
   );
 }
 
-export default function LoginPage() {
+function LoginInner() {
   const supabase = createClient();
+  const params = useSearchParams();
+  const errorKey = params.get("error");
+  const errorMsg = errorKey
+    ? ERROR_MESSAGES[errorKey] ?? "Anmeldung nicht möglich."
+    : null;
 
   async function signInWithGitHub() {
     await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        scopes: "read:user user:email",
       },
     });
   }
@@ -29,13 +50,10 @@ export default function LoginPage() {
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
       style={{ background: "var(--color-surface-0)" }}
     >
-      {/* Subtle ambient — Apple-style, kein Neon */}
       <div
         className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full blur-3xl pointer-events-none opacity-30"
         style={{ background: "radial-gradient(ellipse, rgba(10,132,255,0.08) 0%, transparent 70%)" }}
       />
-
-      {/* Card */}
       <motion.div
         className="relative z-10 w-full max-w-sm"
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -52,7 +70,6 @@ export default function LoginPage() {
             boxShadow: "0 24px 48px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.05) inset",
           }}
         >
-          {/* Logo */}
           <div className="flex flex-col items-center gap-3">
             <motion.div
               initial={{ scale: 0.7, opacity: 0 }}
@@ -61,56 +78,54 @@ export default function LoginPage() {
               style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.40))" }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/yb-mark.svg"
-                alt="YB"
-                width={64}
-                height={64}
-                className="w-16 h-16 rounded-[var(--radius-lg)] select-none"
-              />
+              <img src="/yb-mark.svg" alt="YB" width={64} height={64} className="w-16 h-16 rounded-[var(--radius-lg)] select-none" />
             </motion.div>
             <div className="text-center">
-              <h1
-                className="text-xl font-bold tracking-tight"
-                style={{ color: "var(--color-text-1)" }}
-              >
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--color-text-1)" }}>
                 Portfolio Admin
               </h1>
-              <p
-                className="text-sm mt-0.5"
-                style={{ color: "var(--color-text-2)" }}
-              >
+              <p className="text-sm mt-0.5" style={{ color: "var(--color-text-2)" }}>
                 Yusef Bach
               </p>
             </div>
           </div>
 
-          {/* Divider */}
-          <div
-            className="w-full h-px"
-            style={{ background: "var(--color-border)" }}
-          />
-
-          {/* Sign in */}
-          <div className="w-full flex flex-col gap-3">
-            <Button
-              variant="primary"
-              size="md"
-              onClick={signInWithGitHub}
-              icon={<GithubIcon />}
-              className="w-full justify-center"
+          {errorMsg && (
+            <div
+              className="w-full flex items-start gap-2.5 rounded-[12px] border px-3 py-2.5"
+              style={{
+                background: "rgba(255,69,58,0.08)",
+                borderColor: "rgba(255,69,58,0.35)",
+              }}
+              role="alert"
             >
+              <ShieldAlert size={15} className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }} />
+              <p className="text-[12.5px] leading-snug" style={{ color: "var(--color-danger)" }}>
+                {errorMsg}
+              </p>
+            </div>
+          )}
+
+          <div className="w-full h-px" style={{ background: "var(--color-border)" }} />
+
+          <div className="w-full flex flex-col gap-3">
+            <Button variant="primary" size="md" onClick={signInWithGitHub} icon={<GithubIcon />} className="w-full justify-center">
               Mit GitHub anmelden
             </Button>
-            <p
-              className="text-xs text-center"
-              style={{ color: "var(--color-text-3)" }}
-            >
+            <p className="text-xs text-center" style={{ color: "var(--color-text-3)" }}>
               Zugang nur für autorisierte Nutzer
             </p>
           </div>
         </div>
       </motion.div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }
