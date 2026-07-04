@@ -1,6 +1,13 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+/**
+ * Bot Memory — repo-first
+ *
+ * Liest api/yusef_brain.md direkt aus dem BETAPortfolioBach-Repo (GitHub API).
+ * Speichern = GitHub Commit → Vercel deployt Bot-Backend automatisch neu (~1-2 Min).
+ * Keine Supabase-Abhängigkeit mehr.
+ */
+
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -23,12 +30,13 @@ async function log(payload: {
 }
 
 export default function BotMemoryPage() {
-  const [content, setContent] = useState('')
+  const [content, setContent]         = useState('')
   const [savedContent, setSavedContent] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [savedAt, setSavedAt] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [sha, setSha]                 = useState('')          // GitHub SHA für den PUT
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [committedAt, setCommittedAt] = useState<string | null>(null)
+  const [error, setError]             = useState<string | null>(null)
   const toast = useToast()
 
   const hasChanges = content !== savedContent
@@ -45,24 +53,23 @@ export default function BotMemoryPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [hasChanges])
 
-  // Initiales Laden aus Supabase
+  // Initiales Laden aus GitHub
   useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .from('settings')
-      .select('value, updated_at')
-      .eq('key', 'bot_memory')
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          setError('Fehler beim Laden: ' + error.message)
+    fetch('/api/bot-memory', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: { content?: string; sha?: string; error?: string }) => {
+        if (data.error) {
+          setError('Fehler beim Laden: ' + data.error)
         } else {
-          const val = data.value as { content?: string }
-          const loaded = val?.content ?? ''
+          const loaded = data.content ?? ''
           setContent(loaded)
           setSavedContent(loaded)
-          setSavedAt(data.updated_at)
+          setSha(data.sha ?? '')
         }
+        setLoading(false)
+      })
+      .catch(e => {
+        setError('Netzwerkfehler: ' + String(e))
         setLoading(false)
       })
   }, [])
@@ -70,51 +77,56 @@ export default function BotMemoryPage() {
   async function save() {
     setSaving(true)
     setError(null)
-    const supabase = createClient()
-    const now = new Date().toISOString()
 
-    const { error } = await supabase
-      .from('settings')
-      .update({
-        value: {
+    try {
+      const res = await fetch('/api/bot-memory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           content,
-          version: 'admin-edited',
-          updated_at: now,
-        },
-        updated_at: now,
+          sha,
+          message: `content: Bot Memory aktualisiert via Admin Panel (${content.length} Zeichen)`,
+        }),
       })
-      .eq('key', 'bot_memory')
+      const data = await res.json() as { ok?: boolean; sha?: string; error?: string }
 
-    if (error) {
-      setError('Fehler beim Speichern: ' + error.message)
-      toast.error('Bot Memory konnte nicht gespeichert werden', { detail: error.message })
-      log({
-        action: 'bot_memory_save_failed',
-        status: 'error',
-        message: 'Bot Memory konnte nicht gespeichert werden',
-        error: error.message,
-      })
-    } else {
+      if (!res.ok || data.error) {
+        throw new Error(data.error ?? `HTTP ${res.status}`)
+      }
+
       setSavedContent(content)
-      setSavedAt(now)
-      toast.success('Bot Memory gespeichert — wirkt in < 5 Minuten')
+      setSha(data.sha ?? sha)          // neue SHA für nächsten Commit
+      const now = new Date().toISOString()
+      setCommittedAt(now)
+      toast.success('Bot Memory committed — Vercel deployt Bot automatisch (~1-2 Min)')
       log({
         action: 'bot_memory_updated',
         status: 'success',
-        message: 'Bot Memory aktualisiert',
+        message: 'Bot Memory via GitHub Commit aktualisiert',
         details: { charCount: content.length, tokenEstimate: Math.round(content.length / 4) },
       })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setError('Fehler beim Committen: ' + msg)
+      toast.error('Bot Memory konnte nicht committet werden', { detail: msg })
+      log({
+        action: 'bot_memory_save_failed',
+        status: 'error',
+        message: 'Bot Memory Commit fehlgeschlagen',
+        error: msg,
+      })
     }
+
     setSaving(false)
   }
 
-  const charCount = content.length
+  const charCount     = content.length
   const tokenEstimate = Math.round(charCount / 4)
 
   if (loading) return (
     <div className="flex items-center gap-2 text-sm text-[var(--color-text-3)]">
       <span className="w-4 h-4 rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-accent)] animate-spin" />
-      Lädt Bot Memory…
+      Lädt Bot Memory aus GitHub…
     </div>
   )
 
@@ -124,7 +136,9 @@ export default function BotMemoryPage() {
       <div className="flex items-center justify-between mb-4 flex-shrink-0 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-text-1)] tracking-tight">Bot Memory</h1>
-          <p className="text-[var(--color-text-2)] text-sm mt-0.5">System-Prompt des AI-Twins — wirkt innerhalb von 5 Min nach Speichern</p>
+          <p className="text-[var(--color-text-2)] text-sm mt-0.5">
+            System-Prompt des AI-Twins — Quelle: <code className="text-[var(--color-accent)]">api/yusef_brain.md</code> im Repo
+          </p>
         </div>
         <button
           onClick={save}
@@ -135,7 +149,7 @@ export default function BotMemoryPage() {
               : 'bg-[var(--color-surface-2)] text-[var(--color-text-3)] cursor-not-allowed border border-[var(--color-border)]'
           } disabled:opacity-60`}
         >
-          {saving ? 'Speichert…' : hasChanges ? '● Speichern' : '✓ Gespeichert'}
+          {saving ? 'Committet…' : hasChanges ? '● Committen' : '✓ Committed'}
         </button>
       </div>
 
@@ -175,8 +189,8 @@ export default function BotMemoryPage() {
       <div className="flex items-center gap-4 mt-3 text-xs text-[var(--color-text-3)] flex-shrink-0 flex-wrap">
         <span>{charCount.toLocaleString('de-DE')} Zeichen</span>
         <span>~{tokenEstimate.toLocaleString('de-DE')} Tokens</span>
-        {savedAt && (
-          <span>Zuletzt gespeichert: {new Date(savedAt).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span>
+        {committedAt && (
+          <span>Letzter Commit: {new Date(committedAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         )}
         {hasChanges && <span className="text-[var(--color-warning)] font-medium">● Ungespeicherte Änderungen</span>}
       </div>
