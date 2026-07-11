@@ -117,6 +117,14 @@ function LoginInner() {
             </p>
           </div>
         </div>
+        <div className="flex justify-center gap-4 mt-5">
+          <a href="/impressum" className="text-xs" style={{ color: "var(--color-text-3)" }}>
+            Impressum
+          </a>
+          <a href="/datenschutz" className="text-xs" style={{ color: "var(--color-text-3)" }}>
+            Datenschutz
+          </a>
+        </div>
       </motion.div>
     </main>
   );

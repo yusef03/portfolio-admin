@@ -8,6 +8,11 @@ ins Portfolio-Repo und stößt GitHub-Action-Publishes an.
 - **Stack:** Next.js (App Router) · TypeScript · Tailwind v4 · Supabase (Auth/DB/Storage)
 - **Design-System „SPACE":** Apple-Stil, Dark + Light, Inter + JetBrains Mono, Command-Palette (⌘K),
   `lucide-react` Icons, `framer-motion` Animationen. **Alle Design-Tokens in `src/app/tokens.css`** (eine Wahrheit).
+- **Security:** vier unabhängige Ebenen — Supabase-Signups deaktiviert, server-seitige E-Mail+GitHub-Username-Whitelist,
+  PIN als zweiter Faktor (HMAC-signiertes Cookie, rate-limitiert), Security-Headers auf allen Write-Pfaden.
+  Details: `internal-docs/aktuell/admin-panel.md` (privat, im Portfolio-Repo).
+- **Repo-Ziel:** `src/lib/repo-config.ts` ist die einzige Wahrheitsquelle für das Ziel-Repo (`GITHUB_REPO`-Env-Var,
+  fail-fast) — macht den Umschalt Beta→Live-Repo zu einer einzigen Env-Var-Änderung.
 
 ## Lokal starten
 
